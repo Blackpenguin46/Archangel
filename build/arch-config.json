@@ -1,0 +1,73 @@
+{
+  "archangel_build_config": {
+    "version": "1.0.0",
+    "supported_architectures": {
+      "x86_64": {
+        "kernel_arch": "x86_64",
+        "debian_arch": "amd64",
+        "cross_compile": "x86_64-linux-gnu",
+        "boot_loader": "grub",
+        "cpu_features": ["sse4", "avx2", "aes"],
+        "syscall_abi": "x86_64",
+        "register_layout": {
+          "syscall_nr": "orig_ax",
+          "args": ["di", "si", "dx", "r10", "r8", "r9"]
+        }
+      },
+      "arm64": {
+        "kernel_arch": "aarch64",
+        "debian_arch": "arm64",
+        "cross_compile": "aarch64-linux-gnu",
+        "boot_loader": "grub",
+        "cpu_features": ["neon", "crypto", "crc32"],
+        "syscall_abi": "aarch64",
+        "register_layout": {
+          "syscall_nr": "syscallno",
+          "args": ["regs[0]", "regs[1]", "regs[2]", "regs[3]", "regs[4]", "regs[5]"]
+        }
+      }
+    },
+    "build_targets": {
+      "iso": {
+        "format": "iso9660",
+        "compression": "xz",
+        "bootable": true
+      },
+      "usb": {
+        "format": "hybrid_iso",
+        "bootable": true,
+        "uefi_support": true
+      }
+    },
+    "kernel_modules": [
+      "archangel_core",
+      "archangel_syscall_ai",
+      "archangel_comm"
+    ],
+    "userspace_components": [
+      "archangel-agent",
+      "archangel-cli",
+      "archangel-monitor"
+    ],
+    "cross_compilation": {
+      "toolchain_prefix": {
+        "x86_64": "x86_64-linux-gnu-",
+        "arm64": "aarch64-linux-gnu-"
+      },
+      "required_packages": {
+        "x86_64": ["gcc-x86-64-linux-gnu", "libc6-dev-amd64-cross"],
+        "arm64": ["gcc-aarch64-linux-gnu", "libc6-dev-arm64-cross"]
+      }
+    },
+    "testing": {
+      "qemu_support": {
+        "x86_64": "qemu-system-x86_64",
+        "arm64": "qemu-system-aarch64"
+      },
+      "test_commands": {
+        "boot_test": "timeout 60s qemu-system-{arch} -m 2G -cdrom {iso_file} -nographic -serial stdio",
+        "module_test": "modprobe archangel_core && cat /proc/archangel/stats"
+      }
+    }
+  }
+}
