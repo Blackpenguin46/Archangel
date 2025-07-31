@@ -1,0 +1,48 @@
+{
+  "system": {
+    "log_level": "INFO",
+    "data_directory": "./data",
+    "model_cache_directory": "./models",
+    "container_runtime": "docker",
+    "hardware_profile": "m2_macbook_16gb"
+  },
+  "ai": {
+    "model_name": "microsoft/DialoGPT-small",
+    "max_tokens": 512,
+    "temperature": 0.7,
+    "use_local_models": true,
+    "memory_efficient": true,
+    "fp16": true
+  },
+  "training": {
+    "batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "max_length": 512,
+    "dataloader_num_workers": 1,
+    "pin_memory": false,
+    "low_memory_mode": true
+  },
+  "security": {
+    "enable_red_team": true,
+    "enable_blue_team": true,
+    "sandbox_mode": true,
+    "require_authorization": true,
+    "lightweight_operations": true
+  },
+  "containers": {
+    "kali_image": "kalilinux/kali-rolling",
+    "monitoring_image": "ubuntu:22.04",
+    "network_isolation": true,
+    "resource_limits": {
+      "memory": "2GB",
+      "cpu": "1"
+    },
+    "max_containers": 2
+  },
+  "performance": {
+    "optimize_for_memory": true,
+    "use_swap": false,
+    "max_concurrent_operations": 2,
+    "cache_size_mb": 256
+  }
+}
