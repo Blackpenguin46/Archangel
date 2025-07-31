@@ -1,0 +1,97 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files with secrets
+.env.local
+.env.production
+*.key
+*.pem
+
+# Logs and temporary files
+*.log
+logs/
+temp/
+tmp/
+
+# Cache directories
+.cache/
+node_modules/
+.npm/
+
+# Documentation builds
+docs/_build/
+site/
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Hugging Face cache (will be mounted as volume)
+.cache/huggingface/
+
+# Kernel build artifacts (will be built in container)
+kernel/*.o
+kernel/*.ko
+kernel/.*.cmd
+kernel/modules.order
+kernel/Module.symvers
+kernel/.tmp_versions/
+
+# Test and coverage reports
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Database files
+*.db
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
