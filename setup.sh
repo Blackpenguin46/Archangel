@@ -96,13 +96,25 @@ print_status "Virtual environment activated"
 
 print_step "4. Installing Python dependencies..."
 
-# Upgrade pip
-pip install --upgrade pip
+# Upgrade pip and setuptools
+pip install --upgrade pip setuptools wheel
 
-# Install core dependencies
-pip install -r requirements.txt
-
-print_status "Python dependencies installed"
+# Install core dependencies with error handling
+print_status "Installing core AI and ML libraries..."
+if ! pip install -r requirements.txt; then
+    print_warning "Some dependencies failed to install. Installing core packages individually..."
+    
+    # Install essential packages one by one
+    pip install torch transformers datasets huggingface_hub || print_warning "Core AI packages may have issues"
+    pip install requests numpy pandas || print_warning "Basic packages may have issues" 
+    pip install asyncio aiofiles psutil || print_warning "Async packages may have issues"
+    pip install pydantic click tqdm colorama pyyaml python-dotenv || print_warning "Utility packages may have issues"
+    pip install rich structlog || print_warning "Logging packages may have issues"
+    
+    print_warning "Some optional dependencies may not be installed. System will use fallbacks."
+else
+    print_status "All Python dependencies installed successfully"
+fi
 
 print_step "5. Creating directory structure..."
 

@@ -23,9 +23,9 @@ import numpy as np
 
 @dataclass
 class TrainingConfig:
-    """Configuration for DeepSeek training pipeline"""
-    model_name: str = "tngtech/DeepSeek-TNG-R1T2-Chimera"
-    output_dir: str = "./trained_models/deepseek_security"
+    """Configuration for cybersecurity AI training pipeline"""
+    model_name: str = "fdtn-ai/Foundation-Sec-8B"  # Cybersecurity-specialized LLM
+    output_dir: str = "./trained_models/cybersec_ai"
     max_length: int = 2048
     batch_size: int = 4
     learning_rate: float = 2e-4
@@ -55,28 +55,43 @@ class CybersecurityDatasetPreparer:
         
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+        
+        # Alternative models if primary is unavailable
+        self.fallback_models = [
+            "Vanessasml/cyber-risk-llama-3-8b",  # Cybersecurity-focused Llama 3
+            "meta-llama/Llama-3.1-8B-Instruct",  # General purpose with good reasoning
+            "microsoft/DialoGPT-medium",  # Fallback conversational model
+        ]
     
     async def initialize(self):
-        """Initialize tokenizer and data preparation"""
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_name,
-                trust_remote_code=True,
-                padding_side="right"
-            )
-            
-            # Add pad token if it doesn't exist
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
+        """Initialize tokenizer and data preparation with fallback models"""
+        # Try primary model first
+        for model_name in [self.config.model_name] + self.fallback_models:
+            try:
+                self.logger.info(f"Attempting to load tokenizer for {model_name}")
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    model_name,
+                    trust_remote_code=True,
+                    padding_side="right"
+                )
                 
-            self.logger.info(f"Initialized tokenizer for {self.config.model_name}")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to initialize tokenizer: {e}")
-            # Fallback for demo purposes
-            self.logger.info("Using mock tokenizer for demonstration")
-            return True
+                # Add pad token if it doesn't exist
+                if self.tokenizer.pad_token is None:
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                
+                # Update config with successful model
+                self.config.model_name = model_name
+                self.logger.info(f"Successfully initialized tokenizer for {model_name}")
+                return True
+                
+            except Exception as e:
+                self.logger.warning(f"Failed to load {model_name}: {e}")
+                continue
+        
+        # If all models fail, use mock tokenizer
+        self.logger.warning("All models failed to load, using mock tokenizer for demonstration")
+        self.config.model_name = "mock_model"
+        return True
     
     async def prepare_comprehensive_dataset(self) -> DatasetDict:
         """Prepare comprehensive cybersecurity training dataset"""
@@ -977,8 +992,8 @@ Reasoning Chain: Strategic assessment → Technical implementation → Risk miti
         
         return processed_dataset
 
-class DeepSeekSecurityTrainer:
-    """Main training pipeline for DeepSeek cybersecurity model"""
+class CybersecurityAITrainer:
+    """Main training pipeline for cybersecurity AI models"""
     
     def __init__(self, config: TrainingConfig):
         self.config = config
@@ -994,52 +1009,68 @@ class DeepSeekSecurityTrainer:
         Path(self.config.output_dir).mkdir(parents=True, exist_ok=True)
     
     async def initialize_model(self):
-        """Initialize DeepSeek model and tokenizer for training"""
-        try:
-            self.logger.info(f"Loading DeepSeek model: {self.config.model_name}")
-            
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_name,
-                trust_remote_code=True,
-                padding_side="right"
-            )
-            
-            # Add pad token if missing
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-            
-            # Load model
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.config.model_name,
-                trust_remote_code=True,
-                torch_dtype=torch.float16 if self.config.fp16 else torch.float32,
-                device_map="auto"
-            )
-            
-            # Setup LoRA for efficient fine-tuning
-            lora_config = LoraConfig(
-                task_type=TaskType.CAUSAL_LM,
-                r=self.config.lora_r,
-                lora_alpha=self.config.lora_alpha,
-                lora_dropout=self.config.lora_dropout,
-                target_modules=self.config.lora_target_modules or ["q_proj", "v_proj", "k_proj", "o_proj"]
-            )
-            
-            self.model = get_peft_model(self.model, lora_config)
-            self.model.print_trainable_parameters()
-            
-            self.logger.info("Model initialization successful")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Model initialization failed: {e}")
-            self.logger.info("Using mock training setup for demonstration")
-            return False
+        """Initialize cybersecurity AI model and tokenizer for training"""
+        
+        # Alternative models to try
+        fallback_models = [
+            "Vanessasml/cyber-risk-llama-3-8b",  # Cybersecurity-focused Llama 3
+            "meta-llama/Llama-3.1-8B-Instruct",  # General purpose with good reasoning
+            "microsoft/DialoGPT-medium",  # Fallback conversational model
+        ]
+        
+        # Try primary model first, then fallbacks
+        for model_name in [self.config.model_name] + fallback_models:
+            try:
+                self.logger.info(f"Loading cybersecurity AI model: {model_name}")
+                
+                # Load tokenizer
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    model_name,
+                    trust_remote_code=True,
+                    padding_side="right"
+                )
+                
+                # Add pad token if missing
+                if self.tokenizer.pad_token is None:
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                
+                # Load model
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    trust_remote_code=True,
+                    torch_dtype=torch.float16 if self.config.fp16 else torch.float32,
+                    device_map="auto"
+                )
+                
+                # Setup LoRA for efficient fine-tuning
+                lora_config = LoraConfig(
+                    task_type=TaskType.CAUSAL_LM,
+                    r=self.config.lora_r,
+                    lora_alpha=self.config.lora_alpha,
+                    lora_dropout=self.config.lora_dropout,
+                    target_modules=self.config.lora_target_modules or ["q_proj", "v_proj", "k_proj", "o_proj"]
+                )
+                
+                self.model = get_peft_model(self.model, lora_config)
+                self.model.print_trainable_parameters()
+                
+                # Update config with successful model
+                self.config.model_name = model_name
+                self.logger.info(f"Model initialization successful with {model_name}")
+                return True
+                
+            except Exception as e:
+                self.logger.warning(f"Failed to load {model_name}: {e}")
+                continue
+        
+        # If all models fail
+        self.logger.error("All models failed to initialize")
+        self.logger.info("Using mock training setup for demonstration")
+        return False
     
     async def train_model(self, dataset: DatasetDict):
-        """Train DeepSeek model on cybersecurity dataset"""
-        self.logger.info("Starting DeepSeek cybersecurity model training...")
+        """Train cybersecurity AI model on security datasets"""
+        self.logger.info("Starting cybersecurity AI model training...")
         
         if not self.model or not self.tokenizer:
             self.logger.warning("Model not initialized, running mock training")
@@ -1219,8 +1250,8 @@ class DeepSeekSecurityTrainer:
 
 async def main():
     """Main training pipeline execution"""
-    print("🧠 DeepSeek R1T2 Cybersecurity Training Pipeline")
-    print("=" * 60)
+    print("🧠 Cybersecurity AI Training Pipeline - Foundation-Sec & Llama Models")
+    print("=" * 75)
     
     # Initialize configuration
     config = TrainingConfig()
@@ -1237,17 +1268,17 @@ async def main():
     print(f"✅ Validation set: {len(dataset['test'])} examples")
     
     # Initialize trainer
-    print("\n🚀 Initializing DeepSeek training pipeline...")
-    trainer = DeepSeekSecurityTrainer(config)
+    print("\n🚀 Initializing cybersecurity AI training pipeline...")
+    trainer = CybersecurityAITrainer(config)
     model_initialized = await trainer.initialize_model()
     
     if model_initialized:
-        print("✅ DeepSeek model initialized successfully")
+        print("✅ Cybersecurity AI model initialized successfully")
     else:
-        print("⚠️ Using mock training (model unavailable)")
+        print("⚠️ Using mock training (models unavailable)")
     
     # Train model
-    print("\n🎯 Training DeepSeek on cybersecurity data...")
+    print("\n🎯 Training cybersecurity AI model on security data...")
     training_results = await trainer.train_model(dataset)
     
     print("✅ Training completed!")
@@ -1277,9 +1308,9 @@ async def main():
     print(f"📊 Scenarios evaluated: {evaluation_results.get('scenarios_evaluated', 0)}")
     print(f"📊 Response quality: {evaluation_results.get('response_quality', 'High')}")
     
-    print(f"\n🎉 DeepSeek cybersecurity training pipeline completed!")
+    print(f"\n🎉 Cybersecurity AI training pipeline completed!")
     print(f"📁 Results saved to: {config.output_dir}")
-    print(f"🧠 Model ready for enhanced autonomous security operations!")
+    print(f"🧠 Enhanced cybersecurity AI model ready for autonomous security operations!")
     
     return 0
 
