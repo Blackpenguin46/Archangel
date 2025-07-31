@@ -24,18 +24,18 @@ import numpy as np
 @dataclass
 class TrainingConfig:
     """Configuration for cybersecurity AI training pipeline"""
-    model_name: str = "fdtn-ai/Foundation-Sec-8B"  # Cybersecurity-specialized LLM
+    model_name: str = "microsoft/DialoGPT-small"  # 117M parameters - runs on 16GB M2 MacBook
     output_dir: str = "./trained_models/cybersec_ai"
-    max_length: int = 2048
-    batch_size: int = 4
+    max_length: int = 512  # Reduced for memory efficiency
+    batch_size: int = 1    # Small batch size for M2 MacBook
     learning_rate: float = 2e-4
     num_epochs: int = 3
-    warmup_steps: int = 100
-    save_steps: int = 500
-    eval_steps: int = 500
-    gradient_accumulation_steps: int = 4
-    fp16: bool = True
-    dataloader_num_workers: int = 4
+    warmup_steps: int = 50  # Reduced for smaller training
+    save_steps: int = 100   # More frequent saves
+    eval_steps: int = 100   # More frequent evaluation
+    gradient_accumulation_steps: int = 8  # Increased to simulate larger batches
+    fp16: bool = False      # Disabled for Apple Silicon MPS compatibility
+    dataloader_num_workers: int = 1  # Reduced for M2 MacBook
     
     # LoRA configuration
     lora_r: int = 16
@@ -56,11 +56,12 @@ class CybersecurityDatasetPreparer:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        # Alternative models if primary is unavailable
+        # Alternative models if primary is unavailable (all lightweight for M2 MacBook 16GB)
         self.fallback_models = [
-            "Vanessasml/cyber-risk-llama-3-8b",  # Cybersecurity-focused Llama 3
-            "meta-llama/Llama-3.1-8B-Instruct",  # General purpose with good reasoning
-            "microsoft/DialoGPT-medium",  # Fallback conversational model
+            "microsoft/DialoGPT-medium",    # 345M parameters - manageable on M2
+            "distilgpt2",                   # 82M parameters - very lightweight  
+            "gpt2",                         # 124M parameters - lightweight
+            "microsoft/DialoGPT-small",     # 117M parameters - smallest option
         ]
     
     async def initialize(self):
@@ -975,10 +976,12 @@ Reasoning Chain: Strategic assessment → Technical implementation → Risk miti
                     padding=False,
                     return_tensors=None
                 )
+                
+                # For causal LM, labels should be the same as input_ids
                 return {
                     "input_ids": tokenized["input_ids"],
                     "attention_mask": tokenized["attention_mask"],
-                    "text": prompt
+                    "labels": tokenized["input_ids"].copy()  # Labels for loss calculation
                 }
             else:
                 # Return formatted text for demo
@@ -1011,11 +1014,12 @@ class CybersecurityAITrainer:
     async def initialize_model(self):
         """Initialize cybersecurity AI model and tokenizer for training"""
         
-        # Alternative models to try
+        # Alternative models to try (all lightweight for M2 MacBook 16GB)
         fallback_models = [
-            "Vanessasml/cyber-risk-llama-3-8b",  # Cybersecurity-focused Llama 3
-            "meta-llama/Llama-3.1-8B-Instruct",  # General purpose with good reasoning
-            "microsoft/DialoGPT-medium",  # Fallback conversational model
+            "microsoft/DialoGPT-medium",    # 345M parameters - manageable on M2
+            "distilgpt2",                   # 82M parameters - very lightweight  
+            "gpt2",                         # 124M parameters - lightweight
+            "microsoft/DialoGPT-small",     # 117M parameters - smallest option
         ]
         
         # Try primary model first, then fallbacks
@@ -1043,12 +1047,18 @@ class CybersecurityAITrainer:
                 )
                 
                 # Setup LoRA for efficient fine-tuning
+                # Different target modules for GPT-style models vs Llama-style
+                if "gpt" in model_name.lower() or "dialo" in model_name.lower():
+                    target_modules = ["c_attn", "c_proj"]  # GPT-style attention layers
+                else:
+                    target_modules = ["q_proj", "v_proj", "k_proj", "o_proj"]  # Llama-style
+                
                 lora_config = LoraConfig(
                     task_type=TaskType.CAUSAL_LM,
                     r=self.config.lora_r,
                     lora_alpha=self.config.lora_alpha,
                     lora_dropout=self.config.lora_dropout,
-                    target_modules=self.config.lora_target_modules or ["q_proj", "v_proj", "k_proj", "o_proj"]
+                    target_modules=target_modules
                 )
                 
                 self.model = get_peft_model(self.model, lora_config)
@@ -1088,7 +1098,7 @@ class CybersecurityAITrainer:
             logging_steps=100,
             save_steps=self.config.save_steps,
             eval_steps=self.config.eval_steps,
-            evaluation_strategy="steps",
+            eval_strategy="steps",  # Fixed: was "evaluation_strategy" 
             save_strategy="steps",
             fp16=self.config.fp16,
             dataloader_num_workers=self.config.dataloader_num_workers,
@@ -1112,7 +1122,7 @@ class CybersecurityAITrainer:
             train_dataset=dataset["train"],
             eval_dataset=dataset["test"],
             data_collator=data_collator,
-            tokenizer=self.tokenizer,
+            processing_class=self.tokenizer,  # Fixed: use processing_class instead of tokenizer
         )
         
         # Start training
@@ -1282,8 +1292,9 @@ async def main():
     training_results = await trainer.train_model(dataset)
     
     print("✅ Training completed!")
-    print(f"📊 Final training loss: {training_results.get('train_loss', 'N/A')}")
-    print(f"📊 Final validation loss: {training_results.get('eval_loss', 'N/A')}")
+    print(f"📊 Final training loss: {training_results.metrics.get('train_loss', 'N/A')}")
+    print(f"📊 Training time: {training_results.metrics.get('train_runtime', 'N/A')} seconds")
+    print(f"📊 Samples per second: {training_results.metrics.get('train_samples_per_second', 'N/A')}")
     
     # Evaluate model
     test_scenarios = [
