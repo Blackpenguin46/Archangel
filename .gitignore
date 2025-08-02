@@ -79,11 +79,14 @@ tokens.txt
 *.sqlite3
 
 # Large model files (use Git LFS instead)
+*.safetensors
+*.bin
 models/deepseek/*.safetensors
 models/deepseek/*.bin
 trained_models/**/*.safetensors
 trained_models/**/*.bin
 trained_models/**/*.pt
+trained_models/**/*.pth
 
 # AI training data (too large for git)
 data/adversarial_training/
