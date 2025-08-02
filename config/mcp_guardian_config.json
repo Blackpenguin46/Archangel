@@ -1,0 +1,408 @@
+{
+  "mcp_guardian_protocol": {
+    "version": "1.0.0",
+    "environment": "development",
+    "security_level": "high",
+    "audit_retention_days": 2555
+  },
+  "team_permissions": {
+    "red_team": [
+      "reconnaissance",
+      "vulnerability_scanning", 
+      "exploitation",
+      "osint"
+    ],
+    "blue_team": [
+      "threat_intelligence",
+      "incident_response",
+      "memory_analysis",
+      "network_monitoring",
+      "malware_analysis"
+    ],
+    "neutral": [
+      "osint",
+      "infrastructure"
+    ],
+    "admin": [
+      "reconnaissance",
+      "vulnerability_scanning",
+      "exploitation", 
+      "threat_intelligence",
+      "incident_response",
+      "memory_analysis",
+      "network_monitoring",
+      "osint",
+      "malware_analysis",
+      "infrastructure"
+    ]
+  },
+  "api_policies": {
+    "shodan": {
+      "api_name": "shodan",
+      "allowed_teams": ["red_team", "blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 1000,
+        "requests_per_minute": 20
+      },
+      "data_retention_days": 30,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2"],
+      "terms_of_service_url": "https://www.shodan.io/legal",
+      "data_sharing_restrictions": ["no_resale", "research_only"],
+      "geographic_restrictions": []
+    },
+    "virustotal": {
+      "api_name": "virustotal",
+      "allowed_teams": ["blue_team"],
+      "rate_limits": {
+        "requests_per_minute": 4,
+        "requests_per_day": 1000
+      },
+      "data_retention_days": 90,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2", "gdpr"],
+      "terms_of_service_url": "https://www.virustotal.com/gui/terms-of-service",
+      "data_sharing_restrictions": ["confidential_handling"],
+      "geographic_restrictions": ["eu_gdpr_compliant"]
+    },
+    "exploit_db": {
+      "api_name": "exploit_db",
+      "allowed_teams": ["red_team"],
+      "rate_limits": {
+        "requests_per_hour": 500
+      },
+      "data_retention_days": 7,
+      "requires_approval": true,
+      "compliance_frameworks": ["nist"],
+      "terms_of_service_url": "https://www.exploit-db.com/",
+      "data_sharing_restrictions": ["authorized_testing_only"],
+      "geographic_restrictions": []
+    },
+    "metasploit": {
+      "api_name": "metasploit",
+      "allowed_teams": ["red_team"],
+      "rate_limits": {
+        "requests_per_hour": 100
+      },
+      "data_retention_days": 1,
+      "requires_approval": true,
+      "compliance_frameworks": ["nist", "soc2"],
+      "terms_of_service_url": "https://www.rapid7.com/legal/terms/",
+      "data_sharing_restrictions": ["authorized_testing_only", "no_production"],
+      "geographic_restrictions": []
+    },
+    "misp": {
+      "api_name": "misp",
+      "allowed_teams": ["blue_team", "neutral"],
+      "rate_limits": {
+        "requests_per_hour": 200
+      },
+      "data_retention_days": 365,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2", "gdpr"],
+      "terms_of_service_url": "https://www.misp-project.org/",
+      "data_sharing_restrictions": ["threat_intelligence_sharing"],
+      "geographic_restrictions": []
+    },
+    "osquery": {
+      "api_name": "osquery",
+      "allowed_teams": ["blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 1000
+      },
+      "data_retention_days": 30,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2"],
+      "terms_of_service_url": "https://osquery.io/",
+      "data_sharing_restrictions": ["endpoint_monitoring_only"],
+      "geographic_restrictions": []
+    },
+    "yara": {
+      "api_name": "yara",
+      "allowed_teams": ["blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 500
+      },
+      "data_retention_days": 90,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2"],
+      "terms_of_service_url": "https://virustotal.github.io/yara/",
+      "data_sharing_restrictions": ["malware_analysis_only"],
+      "geographic_restrictions": []
+    },
+    "volatility": {
+      "api_name": "volatility",
+      "allowed_teams": ["blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 50
+      },
+      "data_retention_days": 30,
+      "requires_approval": true,
+      "compliance_frameworks": ["soc2", "nist"],
+      "terms_of_service_url": "https://www.volatilityfoundation.org/",
+      "data_sharing_restrictions": ["memory_analysis_only", "forensic_use_only"],
+      "geographic_restrictions": []
+    },
+    "suricata": {
+      "api_name": "suricata",
+      "allowed_teams": ["blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 200
+      },
+      "data_retention_days": 30,
+      "requires_approval": false,
+      "compliance_frameworks": ["soc2"],
+      "terms_of_service_url": "https://suricata.io/",
+      "data_sharing_restrictions": ["network_monitoring_only"],
+      "geographic_restrictions": []
+    },
+    "nuclei": {
+      "api_name": "nuclei",
+      "allowed_teams": ["red_team", "blue_team"],
+      "rate_limits": {
+        "requests_per_hour": 200
+      },
+      "data_retention_days": 14,
+      "requires_approval": true,
+      "compliance_frameworks": ["nist"],
+      "terms_of_service_url": "https://nuclei.projectdiscovery.io/",
+      "data_sharing_restrictions": ["vulnerability_scanning_only"],
+      "geographic_restrictions": []
+    }
+  },
+  "blocked_targets": [
+    "192.168.1.0/24",
+    "10.0.0.0/8", 
+    "172.16.0.0/12",
+    "production.*",
+    "*.gov",
+    "*.mil", 
+    "*.edu",
+    "critical-infrastructure.*",
+    "financial.*",
+    "healthcare.*",
+    "utilities.*",
+    "nuclear.*"
+  ],
+  "emergency_contacts": {
+    "security_manager": "security-manager@archangel.local",
+    "ciso": "ciso@archangel.local",
+    "legal_counsel": "legal@archangel.local",
+    "emergency_response": "emergency@archangel.local"
+  },
+  "ethical_boundaries": {
+    "red_team_constraints": {
+      "require_penetration_test_authorization": true,
+      "require_legal_documentation": true,
+      "prohibit_unauthorized_production_access": true,
+      "require_damage_prevention_measures": true,
+      "mandate_scope_documentation": true
+    },
+    "blue_team_constraints": {
+      "prohibit_exploitation_tools": true,
+      "require_incident_authorization": true,
+      "mandate_data_protection": true,
+      "require_privacy_compliance": true
+    },
+    "autonomous_ai_limits": {
+      "max_concurrent_operations": 5,
+      "require_human_oversight_for_high_risk": true,
+      "mandate_approval_for_destructive_operations": true,
+      "enforce_time_based_restrictions": true,
+      "require_business_justification": true
+    }
+  },
+  "legal_compliance": {
+    "authorized_testing_requirements": {
+      "written_authorization": true,
+      "scope_documentation": true,
+      "stakeholder_notification": true,
+      "damage_mitigation_plan": true,
+      "completion_reporting": true
+    },
+    "production_approval_requirements": {
+      "ciso_approval": true,
+      "legal_review": true,
+      "risk_assessment": true,
+      "rollback_plan": true,
+      "monitoring_plan": true
+    },
+    "emergency_response_requirements": {
+      "incident_documentation": true,
+      "time_limited_authorization": true,
+      "post_incident_review": true,
+      "stakeholder_notification": true
+    }
+  },
+  "data_classification_controls": {
+    "public": {
+      "required_authorization": "user",
+      "retention_days": 30,
+      "encryption_required": false,
+      "geographic_restrictions": false,
+      "audit_level": "basic"
+    },
+    "internal": {
+      "required_authorization": "analyst", 
+      "retention_days": 90,
+      "encryption_required": true,
+      "geographic_restrictions": false,
+      "audit_level": "standard"
+    },
+    "confidential": {
+      "required_authorization": "security_analyst",
+      "retention_days": 365,
+      "encryption_required": true,
+      "geographic_restrictions": true,
+      "audit_level": "enhanced"
+    },
+    "restricted": {
+      "required_authorization": "privacy_officer",
+      "retention_days": 2555,
+      "encryption_required": true,
+      "geographic_restrictions": true,
+      "audit_level": "comprehensive"
+    },
+    "top_secret": {
+      "required_authorization": "federal_authorized",
+      "retention_days": 3650,
+      "encryption_required": true,
+      "geographic_restrictions": true,
+      "audit_level": "maximum"
+    }
+  },
+  "monitoring_configuration": {
+    "real_time_alerting": {
+      "enabled": true,
+      "alert_thresholds": {
+        "high_risk_operations": 7.0,
+        "rate_limit_violations": 80,
+        "compliance_violations": 1,
+        "emergency_stops": 1
+      },
+      "notification_channels": [
+        "email",
+        "siem",
+        "webhook"
+      ]
+    },
+    "threat_detection": {
+      "enabled": true,
+      "suspicious_activity_threshold": 5,
+      "rapid_fire_operation_threshold": 10,
+      "failed_operation_threshold": 15,
+      "detection_window_minutes": 30
+    },
+    "performance_monitoring": {
+      "enabled": true,
+      "response_time_threshold_ms": 5000,
+      "error_rate_threshold_percent": 5.0,
+      "availability_threshold_percent": 99.0
+    }
+  },
+  "approval_workflows": {
+    "penetration_testing": {
+      "required_approvers": ["security_manager", "legal_counsel"],
+      "approval_timeout_hours": 24,
+      "documentation_required": true,
+      "scope_review_required": true
+    },
+    "production_operations": {
+      "required_approvers": ["ciso", "business_owner"],
+      "approval_timeout_hours": 4,
+      "risk_assessment_required": true,
+      "rollback_plan_required": true
+    },
+    "high_risk_operations": {
+      "required_approvers": ["security_manager"],
+      "approval_timeout_hours": 2,
+      "justification_required": true,
+      "monitoring_required": true
+    },
+    "exploitation_tools": {
+      "required_approvers": ["security_manager", "legal_counsel"],
+      "approval_timeout_hours": 8,
+      "penetration_test_authorization_required": true,
+      "damage_prevention_plan_required": true
+    }
+  },
+  "security_hardening": {
+    "token_security": {
+      "jwt_expiration_hours": 2,
+      "single_use_for_high_risk": true,
+      "mfa_required_risk_threshold": 7.0,
+      "geographic_validation": true
+    },
+    "network_security": {
+      "ip_whitelisting_enabled": true,
+      "vpn_required_for_classified": true,
+      "geo_blocking_enabled": true,
+      "rate_limiting_enabled": true
+    },
+    "audit_security": {
+      "tamper_proof_logging": true,
+      "log_encryption": true,
+      "log_integrity_checking": true,
+      "secure_log_storage": true
+    }
+  },
+  "incident_response": {
+    "automatic_escalation": {
+      "enabled": true,
+      "escalation_thresholds": {
+        "emergency_stops": 1,
+        "critical_alerts": 3,
+        "compliance_violations": 5
+      },
+      "escalation_contacts": [
+        "security_manager",
+        "ciso",
+        "emergency_response"
+      ]
+    },
+    "containment_actions": {
+      "agent_blocking": true,
+      "operation_quarantine": true,
+      "emergency_stop": true,
+      "network_isolation": false
+    },
+    "recovery_procedures": {
+      "automated_rollback": false,
+      "manual_intervention_required": true,
+      "post_incident_review_required": true,
+      "lessons_learned_documentation": true
+    }
+  },
+  "compliance_reporting": {
+    "soc2": {
+      "enabled": true,
+      "reporting_frequency": "monthly",
+      "required_evidence": [
+        "access_controls",
+        "change_management", 
+        "monitoring_logs",
+        "incident_reports"
+      ]
+    },
+    "nist": {
+      "enabled": true,
+      "reporting_frequency": "quarterly",
+      "required_evidence": [
+        "risk_assessments",
+        "security_controls",
+        "vulnerability_scans",
+        "penetration_tests"
+      ]
+    },
+    "gdpr": {
+      "enabled": true,
+      "reporting_frequency": "annual",
+      "required_evidence": [
+        "data_processing_activities",
+        "consent_management",
+        "breach_notifications",
+        "privacy_impact_assessments"
+      ]
+    }
+  }
+}

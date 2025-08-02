@@ -78,6 +78,39 @@ class KernelStats:
     max_decision_time_ns: int = 0
     uptime_seconds: int = 0
 
+@dataclass
+class EnhancedKernelStats:
+    """Enhanced statistics from all kernel subsystems"""
+    # Core statistics
+    core_stats: KernelStats
+    
+    # Communication statistics
+    messages_sent: int = 0
+    messages_received: int = 0
+    ring_buffer_overruns: int = 0
+    zero_copy_operations: int = 0
+    fast_path_decisions: int = 0
+    avg_response_time_ns: int = 0
+    min_response_time_ns: int = 0
+    max_response_time_ns: int = 0
+    decision_cache_hits: int = 0
+    decision_cache_misses: int = 0
+    
+    # Memory protection statistics
+    total_allocations: int = 0
+    suspicious_memory_activities: int = 0
+    blocked_allocations: int = 0
+    tracked_processes: int = 0
+    
+    # Network analysis statistics
+    total_packets: int = 0
+    blocked_packets: int = 0
+    suspicious_packets: int = 0
+    ddos_packets: int = 0
+    malicious_payloads: int = 0
+    tracked_connections: int = 0
+    tracked_hosts: int = 0
+
 class ArchangelKernelInterface:
     """
     Interface to Archangel kernel module
@@ -161,6 +194,132 @@ class ArchangelKernelInterface:
         except Exception as e:
             logger.error(f"Failed to get kernel stats: {e}")
             return KernelStats()
+    
+    def get_enhanced_kernel_stats(self) -> EnhancedKernelStats:
+        """Get enhanced statistics from all kernel subsystems"""
+        if not self.is_module_loaded():
+            return EnhancedKernelStats(core_stats=KernelStats())
+        
+        try:
+            with open(f"{self.proc_root}/stats", 'r') as f:
+                stats_content = f.read()
+            
+            # Parse the enhanced statistics format
+            stats_dict = {}
+            current_section = None
+            
+            for line in stats_content.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if line.startswith('===') and line.endswith('==='):
+                    # Section header
+                    current_section = line.replace('=', '').strip().lower().replace(' ', '_')
+                    continue
+                
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    key = key.strip().lower().replace(' ', '_')
+                    try:
+                        numeric_value = int(value.strip().split()[0])
+                        stats_dict[f"{current_section}_{key}"] = numeric_value
+                    except (ValueError, IndexError):
+                        pass
+            
+            # Build core stats
+            core_stats = KernelStats(
+                total_decisions=stats_dict.get('core_module_statistics_total_decisions', 0),
+                allow_decisions=stats_dict.get('core_module_statistics_allow', 0),
+                deny_decisions=stats_dict.get('core_module_statistics_deny', 0),
+                monitor_decisions=stats_dict.get('core_module_statistics_monitor', 0),
+                deferred_decisions=stats_dict.get('core_module_statistics_deferred', 0),
+                rule_matches=stats_dict.get('core_module_statistics_rule_matches', 0),
+                cache_hits=stats_dict.get('core_module_statistics_cache_hits', 0),
+                cache_misses=stats_dict.get('core_module_statistics_cache_misses', 0),
+                userspace_requests=stats_dict.get('core_module_statistics_userspace_requests', 0),
+                userspace_responses=stats_dict.get('core_module_statistics_userspace_responses', 0),
+                avg_decision_time_ns=stats_dict.get('core_module_statistics_avg_decision_time', 0),
+                max_decision_time_ns=stats_dict.get('core_module_statistics_max_decision_time', 0),
+                uptime_seconds=stats_dict.get('core_module_statistics_uptime', 0)
+            )
+            
+            # Build enhanced stats
+            return EnhancedKernelStats(
+                core_stats=core_stats,
+                messages_sent=stats_dict.get('enhanced_communication_statistics_messages_sent', 0),
+                messages_received=stats_dict.get('enhanced_communication_statistics_messages_received', 0),
+                ring_buffer_overruns=stats_dict.get('enhanced_communication_statistics_ring_buffer_overruns', 0),
+                zero_copy_operations=stats_dict.get('enhanced_communication_statistics_zero-copy_operations', 0),
+                fast_path_decisions=stats_dict.get('enhanced_communication_statistics_fast_path_decisions', 0),
+                avg_response_time_ns=stats_dict.get('enhanced_communication_statistics_avg_response_time', 0),
+                min_response_time_ns=stats_dict.get('enhanced_communication_statistics_min_response_time', 0),
+                max_response_time_ns=stats_dict.get('enhanced_communication_statistics_max_response_time', 0),
+                decision_cache_hits=stats_dict.get('enhanced_communication_statistics_decision_cache_hits', 0),
+                decision_cache_misses=stats_dict.get('enhanced_communication_statistics_decision_cache_misses', 0),
+                
+                total_allocations=stats_dict.get('memory_protection_statistics_total_allocations', 0),
+                suspicious_memory_activities=stats_dict.get('memory_protection_statistics_suspicious_activities', 0),
+                blocked_allocations=stats_dict.get('memory_protection_statistics_blocked_allocations', 0),
+                tracked_processes=stats_dict.get('memory_protection_statistics_tracked_processes', 0),
+                
+                total_packets=stats_dict.get('network_analysis_statistics_total_packets', 0),
+                blocked_packets=stats_dict.get('network_analysis_statistics_blocked_packets', 0),
+                suspicious_packets=stats_dict.get('network_analysis_statistics_suspicious_packets', 0),
+                ddos_packets=stats_dict.get('network_analysis_statistics_ddos_packets', 0),
+                malicious_payloads=stats_dict.get('network_analysis_statistics_malicious_payloads', 0),
+                tracked_connections=stats_dict.get('network_analysis_statistics_tracked_connections', 0),
+                tracked_hosts=stats_dict.get('network_analysis_statistics_tracked_hosts', 0)
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get enhanced kernel stats: {e}")
+            return EnhancedKernelStats(core_stats=KernelStats())
+    
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get detailed performance metrics for analysis"""
+        stats = self.get_enhanced_kernel_stats()
+        
+        # Calculate performance ratios and rates
+        total_decisions = stats.core_stats.total_decisions
+        total_messages = stats.messages_sent + stats.messages_received
+        
+        metrics = {
+            "response_times": {
+                "avg_ns": stats.avg_response_time_ns,
+                "min_ns": stats.min_response_time_ns,
+                "max_ns": stats.max_response_time_ns,
+                "avg_us": stats.avg_response_time_ns / 1000 if stats.avg_response_time_ns > 0 else 0,
+                "sub_ms_performance": stats.avg_response_time_ns < 1000000  # <1ms
+            },
+            
+            "cache_performance": {
+                "hit_rate": stats.decision_cache_hits / max(stats.decision_cache_hits + stats.decision_cache_misses, 1),
+                "fast_path_rate": stats.fast_path_decisions / max(total_decisions, 1),
+                "cache_efficiency": stats.decision_cache_hits / max(total_decisions, 1)
+            },
+            
+            "communication_performance": {
+                "message_rate": total_messages / max(stats.core_stats.uptime_seconds, 1),
+                "overrun_rate": stats.ring_buffer_overruns / max(stats.messages_sent, 1),
+                "zero_copy_rate": stats.zero_copy_operations / max(total_messages, 1)
+            },
+            
+            "security_detection": {
+                "memory_threat_rate": stats.suspicious_memory_activities / max(stats.total_allocations, 1),
+                "network_threat_rate": stats.suspicious_packets / max(stats.total_packets, 1),
+                "blocking_rate": (stats.blocked_allocations + stats.blocked_packets) / max(stats.total_allocations + stats.total_packets, 1)
+            },
+            
+            "system_load": {
+                "tracked_processes": stats.tracked_processes,
+                "tracked_connections": stats.tracked_connections,
+                "tracked_hosts": stats.tracked_hosts,
+                "decisions_per_second": total_decisions / max(stats.core_stats.uptime_seconds, 1)
+            }
+        }
+        
+        return metrics
     
     def get_security_rules(self) -> List[Dict[str, Any]]:
         """Get current security rules from kernel"""

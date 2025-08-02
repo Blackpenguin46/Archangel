@@ -1,0 +1,82 @@
+[
+  {
+    "threat_actor": "APT29 (Cozy Bear)",
+    "origin": "Russia",
+    "motivation": "Espionage",
+    "targets": "Government, diplomatic missions, defense contractors",
+    "ttps": [
+      "Spear phishing with malicious attachments",
+      "Living off the land techniques",
+      "Steganography for C2 communication",
+      "Cloud service abuse for persistence"
+    ],
+    "indicators": {
+      "domains": [
+        "secure-update[.]com",
+        "mail-service[.]net"
+      ],
+      "ips": [
+        "192.168.1.100",
+        "10.0.0.50"
+      ],
+      "file_hashes": [
+        "a1b2c3d4e5f6...",
+        "f6e5d4c3b2a1..."
+      ]
+    },
+    "last_activity": "2024-01-20"
+  },
+  {
+    "threat_actor": "Lazarus Group",
+    "origin": "North Korea",
+    "motivation": "Financial gain, espionage",
+    "targets": "Financial institutions, cryptocurrency exchanges",
+    "ttps": [
+      "Supply chain attacks",
+      "Custom malware development",
+      "Cryptocurrency theft",
+      "Destructive attacks"
+    ],
+    "indicators": {
+      "domains": [
+        "crypto-wallet[.]org",
+        "bank-update[.]info"
+      ],
+      "ips": [
+        "203.0.113.10",
+        "198.51.100.20"
+      ],
+      "file_hashes": [
+        "123abc456def...",
+        "def456abc123..."
+      ]
+    },
+    "last_activity": "2024-01-25"
+  },
+  {
+    "malware_family": "Emotet",
+    "type": "Banking Trojan/Loader",
+    "distribution": "Email campaigns with malicious attachments",
+    "capabilities": [
+      "Credential theft",
+      "Additional payload delivery",
+      "Lateral movement",
+      "Data exfiltration"
+    ],
+    "indicators": {
+      "registry_keys": [
+        "HKLM\\Software\\Microsoft\\Windows\\Emotet",
+        "HKCU\\Software\\Classes\\Emotet"
+      ],
+      "file_paths": [
+        "%APPDATA%\\Microsoft\\Windows\\Emotet",
+        "%TEMP%\\emotet.exe"
+      ],
+      "network_signatures": [
+        "POST /api/update",
+        "User-Agent: Mozilla/5.0 (Emotet)"
+      ]
+    },
+    "last_seen": "2024-01-22"
+  }
+]

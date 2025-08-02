@@ -1,0 +1,381 @@
+# Enterprise File Server - FTP/SMB with sensitive documents
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV FTP_USER=acme_user
+ENV FTP_PASS=Acm3F1l3s2024!
+ENV SMB_USER=acme_share
+ENV SMB_PASS=Acm3Shr2024!
+
+# Install FTP server, Samba, and utilities
+RUN apt-get update && apt-get install -y \
+    vsftpd \
+    samba \
+    samba-common-bin \
+    apache2 \
+    curl \
+    wget \
+    vim \
+    tree \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directory structure for file shares
+RUN mkdir -p /srv/ftp/public \
+    /srv/ftp/confidential \
+    /srv/ftp/backups \
+    /srv/samba/shared \
+    /srv/samba/executive \
+    /srv/samba/hr \
+    /srv/samba/finance \
+    /var/www/file-portal
+
+# Copy enterprise documents
+COPY containers/enterprise/data/confidential-docs/ /srv/ftp/confidential/
+COPY containers/enterprise/data/trade-secrets/ /srv/ftp/confidential/trade-secrets/
+COPY containers/enterprise/data/hr-documents/ /srv/samba/hr/
+
+# Create additional sensitive files
+RUN echo "ACME FINANCIAL CORP - SERVER CREDENTIALS\n\
+===============================================\n\
+\n\
+Production Database:\n\
+Host: enterprise-financial-db\n\
+Username: root\n\
+Password: Acm3F1n@nc3!2024\n\
+\n\
+Backup Database:\n\
+Host: backup.acmefinancial.local\n\
+Username: backup_admin\n\
+Password: B@ckup_Acm3_2024!\n\
+\n\
+FTP Server:\n\
+Host: ftp.acmefinancial.local\n\
+Username: backup_user\n\
+Password: B@ckupP@ss2024!\n\
+\n\
+Cloud Storage:\n\
+Provider: AWS S3\n\
+Bucket: acme-financial-backups-2024\n\
+Access Key: AKIA1234567890ABCDEF\n\
+Secret Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n\
+\n\
+VPN Access:\n\
+Server: vpn.acmefinancial.local\n\
+Username: admin_vpn\n\
+Password: VPN_Acm3_2024_Secure!\n\
+\n\
+Network Equipment:\n\
+Router: 192.168.1.1 (admin/admin123)\n\
+Switch: 192.168.1.2 (acme/switch2024)\n\
+Firewall: 192.168.1.3 (security/firewall123)" > /srv/ftp/confidential/server-credentials.txt
+
+RUN echo "ACME FINANCIAL - EXECUTIVE EMAIL ARCHIVE\n\
+========================================\n\
+\n\
+From: richard.billionaire@acmefinancial.local\n\
+To: victoria.executive@acmefinancial.local\n\
+Subject: Confidential - Merger Discussion\n\
+Date: July 20, 2024\n\
+\n\
+Victoria,\n\
+\n\
+The Continental Bank acquisition is moving forward faster than expected.\n\
+Goldman Sachs confirms our $15B offer is competitive. Board approval\n\
+next week is critical.\n\
+\n\
+Key points for board presentation:\n\
+- Synergy savings: $500M annually\n\
+- Market expansion: 2.5M new customers\n\
+- Cost reduction: 15% workforce reduction planned\n\
+\n\
+Keep this STRICTLY confidential until public announcement.\n\
+\n\
+Richard\n\
+\n\
+---\n\
+\n\
+From: sarah.goldman@acmefinancial.local\n\
+To: richard.billionaire@acmefinancial.local\n\
+Subject: RE: Q2 Earnings - Adjustments Needed\n\
+Date: July 28, 2024\n\
+\n\
+Richard,\n\
+\n\
+Per our conversation, I've made the \"accounting adjustments\" we discussed:\n\
+\n\
+- Moved $125M in losses to subsidiary books\n\
+- Reclassified derivatives exposure as \"hedging\"\n\
+- Deferred recognition of bad debt provisions\n\
+\n\
+This brings our reported profit to $2.8B as requested.\n\
+Legal has signed off on all adjustments.\n\
+\n\
+Confidential handling required.\n\
+\n\
+Sarah Goldman, CFO" > /srv/samba/executive/executive-emails-archive.txt
+
+RUN echo "ACME FINANCIAL - CUSTOMER COMPLAINTS LOG\n\
+========================================\n\
+\n\
+COMPLAINT #2024-001\n\
+Date: July 1, 2024\n\
+Customer: John Smith (Account: CHK001234567)\n\
+Issue: Unauthorized wire transfer of $25,000\n\
+Status: SUPPRESSED - No media contact\n\
+Resolution: Customer compensation $50,000 + NDA\n\
+\n\
+COMPLAINT #2024-002\n\
+Date: July 5, 2024\n\
+Customer: Sarah Johnson (Account: SAV002345678)\n\
+Issue: Identity theft - SSN compromised in data breach\n\
+Status: LEGAL HOLD - Class action pending\n\
+Exposure: 15,000 customers affected\n\
+Settlement Reserve: $125M\n\
+\n\
+COMPLAINT #2024-003\n\
+Date: July 10, 2024\n\
+Customer: Michael Brown (Account: INV003456789)\n\
+Issue: Investment advisor insider trading\n\
+Status: SEC INVESTIGATION - Cooperation required\n\
+Evidence: Email records, trading logs\n\
+Potential Fine: $50M+\n\
+\n\
+COMPLAINT #2024-004\n\
+Date: July 15, 2024\n\
+Customer: Multiple (Mortgage Division)\n\
+Issue: Discriminatory lending practices\n\
+Status: DOJ INVESTIGATION - External counsel engaged\n\
+Scope: 5,000 mortgage applications under review\n\
+\n\
+INTERNAL NOTE:\n\
+These complaints represent significant legal and regulatory exposure.\n\
+All materials under attorney-client privilege.\n\
+Contact Legal Department before any disclosure." > /srv/samba/shared/customer-complaints-2024.txt
+
+# Configure vsftpd (FTP server)
+RUN echo "listen=YES\n\
+listen_ipv6=NO\n\
+anonymous_enable=YES\n\
+anon_upload_enable=YES\n\
+anon_mkdir_write_enable=YES\n\
+anon_root=/srv/ftp/public\n\
+local_enable=YES\n\
+write_enable=YES\n\
+local_umask=022\n\
+dirmessage_enable=YES\n\
+use_localtime=YES\n\
+xferlog_enable=YES\n\
+connect_from_port_20=YES\n\
+chroot_local_user=YES\n\
+secure_chroot_dir=/var/run/vsftpd/empty\n\
+pam_service_name=vsftpd\n\
+rsa_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem\n\
+rsa_private_key_file=/etc/ssl/private/ssl-cert-snakeoil.key\n\
+ssl_enable=NO\n\
+pasv_enable=YES\n\
+pasv_min_port=10000\n\
+pasv_max_port=10100\n\
+allow_writeable_chroot=YES" > /etc/vsftpd.conf
+
+# Configure Samba
+RUN echo "[global]\n\
+    workgroup = ACMEFINANCIAL\n\
+    server string = Acme Financial File Server\n\
+    netbios name = ACME-FILES\n\
+    security = user\n\
+    map to guest = bad user\n\
+    dns proxy = no\n\
+    log file = /var/log/samba/log.%m\n\
+    max log size = 1000\n\
+    logging = file\n\
+    panic action = /usr/share/samba/panic-action %d\n\
+    server role = standalone server\n\
+    obey pam restrictions = yes\n\
+    unix password sync = yes\n\
+    passwd program = /usr/bin/passwd %u\n\
+    passwd chat = *Enter\\snew\\s*\\spassword:* %n\\n *Retype\\snew\\s*\\spassword:* %n\\n *password\\supdated\\ssuccessfully* .\n\
+    pam password change = yes\n\
+    map to guest = bad user\n\
+    usershare allow guests = yes\n\
+\n\
+[shared]\n\
+    comment = Shared Documents\n\
+    path = /srv/samba/shared\n\
+    browseable = yes\n\
+    guest ok = yes\n\
+    read only = no\n\
+    create mask = 0755\n\
+\n\
+[executive]\n\
+    comment = Executive Documents - Restricted\n\
+    path = /srv/samba/executive\n\
+    browseable = yes\n\
+    guest ok = no\n\
+    read only = no\n\
+    valid users = acme_share\n\
+    create mask = 0700\n\
+\n\
+[hr]\n\
+    comment = Human Resources Files\n\
+    path = /srv/samba/hr\n\
+    browseable = yes\n\
+    guest ok = yes\n\
+    read only = yes\n\
+    create mask = 0644\n\
+\n\
+[finance]\n\
+    comment = Finance Department Files\n\
+    path = /srv/samba/finance\n\
+    browseable = yes\n\
+    guest ok = no\n\
+    read only = no\n\
+    valid users = acme_share\n\
+    create mask = 0600" > /etc/samba/smb.conf
+
+# Create web portal for file access
+RUN echo '<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Acme Financial - Document Portal</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: #f0f2f5; margin: 0; padding: 20px; }\n\
+        .container { max-width: 1000px; margin: 0 auto; }\n\
+        .header { background: #1877f2; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }\n\
+        .card { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }\n\
+        .file-list { list-style: none; padding: 0; }\n\
+        .file-list li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }\n\
+        .file-list li:hover { background: #f8f9fa; }\n\
+        .file-icon { margin-right: 10px; }\n\
+        .sensitive { background: #ffe6e6; }\n\
+        .top-secret { background: #ffcccc; }\n\
+        a { color: #1877f2; text-decoration: none; }\n\
+        a:hover { text-decoration: underline; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <div class="header">\n\
+            <h1>📁 Acme Financial Document Portal</h1>\n\
+            <p>Secure document access and file sharing</p>\n\
+        </div>\n\
+        \n\
+        <div class="card">\n\
+            <h2>Available Services</h2>\n\
+            <ul class="file-list">\n\
+                <li>📂 <a href="ftp://acme_user:Acm3F1l3s2024!@localhost:21">FTP Server Access</a> <span>Full document repository</span></li>\n\
+                <li>🗂️ <a href="smb://acme_share:Acm3Shr2024!@localhost/shared">Shared Drive (SMB)</a> <span>Department file shares</span></li>\n\
+                <li>🔒 <a href="smb://acme_share:Acm3Shr2024!@localhost/executive">Executive Files</a> <span>Restricted access required</span></li>\n\
+            </ul>\n\
+        </div>\n\
+        \n\
+        <div class="card">\n\
+            <h2>📋 Recent Documents</h2>\n\
+            <ul class="file-list">\n\
+                <li class="top-secret">🔴 <strong>board-meeting-minutes-2024.txt</strong> <span>TOP SECRET</span></li>\n\
+                <li class="sensitive">⚠️ proprietary-trading-algorithms.txt <span>CONFIDENTIAL</span></li>\n\
+                <li class="sensitive">💰 employee-salary-database.csv <span>HR RESTRICTED</span></li>\n\
+                <li>📧 executive-emails-archive.txt <span>Executive Only</span></li>\n\
+                <li>🔧 server-credentials.txt <span>IT Department</span></li>\n\
+                <li>📊 customer-complaints-2024.txt <span>Legal Hold</span></li>\n\
+            </ul>\n\
+        </div>\n\
+        \n\
+        <div class="card">\n\
+            <h2>🔐 Access Information</h2>\n\
+            <p><strong>FTP Access:</strong></p>\n\
+            <ul>\n\
+                <li>Server: localhost:21</li>\n\
+                <li>Username: acme_user</li>\n\
+                <li>Password: Acm3F1l3s2024!</li>\n\
+                <li>Anonymous access enabled for /public</li>\n\
+            </ul>\n\
+            \n\
+            <p><strong>SMB/CIFS Access:</strong></p>\n\
+            <ul>\n\
+                <li>Server: localhost:445</li>\n\
+                <li>Username: acme_share</li>\n\
+                <li>Password: Acm3Shr2024!</li>\n\
+                <li>Guest access available for shared folders</li>\n\
+            </ul>\n\
+        </div>\n\
+        \n\
+        <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">\n\
+            <h3>⚠️ Security Notice</h3>\n\
+            <p>This server contains sensitive financial and corporate information. All access is logged and monitored. Unauthorized access is strictly prohibited.</p>\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/file-portal/index.html
+
+# Configure Apache for file portal
+RUN echo "<VirtualHost *:80>\n\
+    DocumentRoot /var/www/file-portal\n\
+    ServerName file-portal.acmefinancial.local\n\
+    \n\
+    <Directory /var/www/file-portal>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+        DirectoryIndex index.html\n\
+    </Directory>\n\
+    \n\
+    # Enable directory browsing with vulnerable configuration\n\
+    <Directory /srv/ftp/public>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride None\n\
+        Require all granted\n\
+    </Directory>\n\
+    \n\
+    Alias /public /srv/ftp/public\n\
+    Alias /confidential /srv/ftp/confidential\n\
+    \n\
+    ErrorLog /var/log/apache2/file-portal-error.log\n\
+    CustomLog /var/log/apache2/file-portal-access.log combined\n\
+</VirtualHost>" > /etc/apache2/sites-available/file-portal.conf
+
+RUN a2ensite file-portal.conf && a2dissite 000-default.conf
+
+# Create users for services
+RUN useradd -m -s /bin/bash acme_user && \
+    echo "acme_user:Acm3F1l3s2024!" | chpasswd && \
+    useradd -m -s /bin/bash acme_share && \
+    echo "acme_share:Acm3Shr2024!" | chpasswd
+
+# Add Samba users
+RUN echo -e "Acm3Shr2024!\nAcm3Shr2024!" | smbpasswd -a acme_share -s
+
+# Set proper permissions
+RUN chown -R acme_user:acme_user /srv/ftp && \
+    chmod -R 755 /srv/ftp/public && \
+    chmod -R 750 /srv/ftp/confidential && \
+    chown -R acme_share:acme_share /srv/samba && \
+    chmod -R 755 /srv/samba/shared && \
+    chmod -R 700 /srv/samba/executive && \
+    chmod -R 644 /srv/samba/hr
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Start Samba\n\
+service smbd start\n\
+service nmbd start\n\
+\n\
+# Start FTP server\n\
+service vsftpd start\n\
+\n\
+# Start Apache web server\n\
+service apache2 start\n\
+\n\
+# Keep container running\n\
+tail -f /var/log/samba/log.smbd /var/log/vsftpd.log /var/log/apache2/access.log 2>/dev/null' > /start.sh && chmod +x /start.sh
+
+# Expose ports
+EXPOSE 21 80 139 445 10000-10100
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost/ && netstat -ln | grep -q ":21 " && netstat -ln | grep -q ":445 " || exit 1
+
+# Start services
+CMD ["/start.sh"]

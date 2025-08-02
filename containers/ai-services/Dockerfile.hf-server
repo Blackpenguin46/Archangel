@@ -1,0 +1,151 @@
+# Hugging Face Model Server - Specialized Cybersecurity Models
+FROM nvidia/cuda:11.8-devel-ubuntu22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HF_HOME=/root/.cache/huggingface
+ENV PYTHONPATH=/app
+ENV CUDA_VISIBLE_DEVICES=all
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    wget \
+    build-essential \
+    cmake \
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    zlib1g-dev \
+    libjpeg-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CUDA-compatible PyTorch and AI libraries
+RUN pip3 install --no-cache-dir \
+    torch==2.1.0+cu118 \
+    torchvision==0.16.0+cu118 \
+    torchaudio==2.1.0+cu118 \
+    --index-url https://download.pytorch.org/whl/cu118
+
+# Install Hugging Face ecosystem
+RUN pip3 install --no-cache-dir \
+    transformers[torch,sentencepiece,tokenizers,torch-speech,vision,timm,torch-vision] \
+    datasets \
+    huggingface-hub[cli,fastai,tensorflow] \
+    accelerate \
+    peft \
+    bitsandbytes \
+    optimum[onnxruntime-gpu] \
+    text-generation-inference \
+    inference-endpoints \
+    gradio \
+    spaces \
+    evaluate \
+    diffusers \
+    sentence-transformers \
+    setfit \
+    autotrain-advanced
+
+# Install model serving infrastructure
+RUN pip3 install --no-cache-dir \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    starlette \
+    httpx \
+    aiofiles \
+    python-multipart \
+    jinja2 \
+    websockets \
+    celery \
+    redis \
+    flower \
+    ray[serve] \
+    triton-python-backend \
+    tensorrt
+
+# Install specialized ML libraries
+RUN pip3 install --no-cache-dir \
+    scikit-learn \
+    xgboost \
+    lightgbm \
+    catboost \
+    tensorflow \
+    tensorboard \
+    mlflow \
+    wandb \
+    comet-ml \
+    neptune-client \
+    clearml
+
+# Install cybersecurity-specific libraries
+RUN pip3 install --no-cache-dir \
+    yara-python \
+    pefile \
+    ssdeep \
+    tlsh \
+    fuzzy \
+    networkx \
+    igraph \
+    scapy \
+    netaddr \
+    dnspython \
+    shodan \
+    censys \
+    virustotal-api \
+    misp-python \
+    stix2 \
+    taxii2-client \
+    sigma-cli \
+    pysigma
+
+# Create application directory
+WORKDIR /app
+
+# Copy application files
+COPY . /app/
+
+# Create model storage directories
+RUN mkdir -p /models/red_team \
+             /models/blue_team \
+             /models/general \
+             /models/cache \
+             /models/logs \
+             /models/checkpoints
+
+# Create HF model server
+COPY containers/ai-services/hf_model_server.py /app/
+COPY containers/ai-services/model_endpoints.py /app/
+COPY containers/ai-services/cybersec_pipelines.py /app/
+
+# Set up model configuration
+COPY containers/ai-services/model_config.json /app/config/
+
+# Create startup script
+COPY containers/ai-services/start-hf-server.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/start-hf-server.sh
+
+# Set environment variables
+ENV MODEL_CACHE_DIR=/models/cache
+ENV MODEL_STORAGE_DIR=/models
+ENV MODEL_CONFIG_PATH=/app/config/model_config.json
+ENV SERVER_HOST=0.0.0.0
+ENV SERVER_PORT=8080
+ENV WORKERS=4
+
+# Expose ports
+EXPOSE 8080 8081 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Start HF model server
+CMD ["/usr/local/bin/start-hf-server.sh"]

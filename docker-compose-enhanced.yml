@@ -1,0 +1,492 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # ARCHANGEL AI ORCHESTRATOR - Main Command & Control
+  # =============================================================================
+  archangel-orchestrator:
+    build: 
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: archangel-ai-orchestrator
+    privileged: true
+    volumes:
+      - .:/app
+      - archangel-hf-cache:/app/.cache/huggingface
+      - archangel-models:/app/models
+      - archangel-logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock  # Access to Docker daemon
+      - /proc:/host/proc:ro
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HUGGINGFACE_TOKEN=${HF_TOKEN:-}
+      - PYTHONPATH=/app
+      - NVIDIA_VISIBLE_DEVICES=all  # GPU access if available
+      - CUDA_VISIBLE_DEVICES=all
+    ports:
+      - "8000:8000"   # Main AI interface
+      - "8001:8001"   # WebSocket for real-time updates
+      - "8888:8888"   # Jupyter for model training
+    networks:
+      - archangel-command
+      - archangel-combat
+    restart: unless-stopped
+    depends_on:
+      - archangel-db
+      - archangel-cache
+      - vector-db
+
+  # =============================================================================
+  # RED TEAM CONTAINERS - AI-Controlled Kali Linux
+  # =============================================================================
+  autonomous-kali-red-team:
+    build:
+      context: .
+      dockerfile: containers/red-team/Dockerfile.kali
+    container_name: autonomous-kali-red-team
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - red-team-data:/data
+      - archangel-hf-cache:/home/kali/.cache/huggingface
+      - red-team-exploits:/data/exploits
+      - red-team-wordlists:/data/wordlists
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TARGET_NETWORK=enterprise-network
+      - TEAM_ROLE=autonomous_red_team
+      - AI_CONTROLLED=true
+      - METASPLOIT_DB=true
+    networks:
+      - archangel-combat
+      - enterprise-network  # Direct access to target network
+    depends_on:
+      - archangel-orchestrator
+      - enterprise-web-server
+      - enterprise-database
+    stdin_open: true
+    tty: true
+    
+  # Secondary Kali instance for distributed attacks
+  kali-red-team-2:
+    build:
+      context: .
+      dockerfile: containers/red-team/Dockerfile.kali
+    container_name: kali-red-team-2
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - red-team-data-2:/data
+      - archangel-hf-cache:/home/kali/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - TARGET_NETWORK=blue-team-network
+      - TEAM_ROLE=distributed_red_team
+      - AI_CONTROLLED=true
+    networks:
+      - archangel-combat
+      - blue-team-network
+    depends_on:
+      - autonomous-kali-red-team
+    profiles:
+      - distributed-attack
+
+  # =============================================================================
+  # ENTERPRISE NETWORK - Mock Corporate Environment (Attack Target)
+  # =============================================================================
+  
+  # Corporate Web Server with sensitive business data
+  enterprise-web-portal:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.web-portal
+    container_name: enterprise-web-portal
+    volumes:
+      - enterprise-web-data:/var/www/html
+      - enterprise-logs:/var/log/apache2
+    environment:
+      - COMPANY_NAME=Acme Financial Corp
+      - DOMAIN=acmefinancial.local
+      - SENSITIVE_DATA=true
+    ports:
+      - "8080:80"
+      - "8443:443"
+    networks:
+      - enterprise-network
+      - archangel-combat
+
+  # Financial Database Server with customer and transaction data
+  enterprise-financial-db:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.financial-db
+    container_name: enterprise-financial-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=Acm3F1n@nc3!2024
+      - MYSQL_DATABASE=financial_records
+      - MYSQL_USER=finance_app
+      - MYSQL_PASSWORD=F1n@pp2024!
+    volumes:
+      - enterprise-financial-data:/var/lib/mysql
+      - ./containers/enterprise/data/financial-schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./containers/enterprise/data/customer-data.sql:/docker-entrypoint-initdb.d/customer-data.sql
+    networks:
+      - enterprise-network
+
+  # Human Resources Database with employee records
+  enterprise-hr-system:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.hr-system
+    container_name: enterprise-hr-system
+    environment:
+      - POSTGRES_DB=hr_records
+      - POSTGRES_USER=hr_admin
+      - POSTGRES_PASSWORD=HRAdm1n2024!
+    volumes:
+      - enterprise-hr-data:/var/lib/postgresql/data
+      - ./containers/enterprise/data/employee-records.sql:/docker-entrypoint-initdb.d/employees.sql
+      - ./containers/enterprise/data/payroll-data.sql:/docker-entrypoint-initdb.d/payroll.sql
+    networks:
+      - enterprise-network
+
+  # File Server with intellectual property and confidential documents
+  enterprise-file-server:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.file-server
+    container_name: enterprise-file-server
+    volumes:
+      - enterprise-documents:/srv/ftp
+      - ./containers/enterprise/data/confidential-docs/:/srv/ftp/confidential/
+      - ./containers/enterprise/data/financial-reports/:/srv/ftp/finance/
+      - ./containers/enterprise/data/hr-documents/:/srv/ftp/hr/
+      - ./containers/enterprise/data/trade-secrets/:/srv/ftp/rd/
+    environment:
+      - FTP_USER=fileadmin
+      - FTP_PASS=F1l3Adm1n2024!
+    networks:
+      - enterprise-network
+
+  # Email Server with corporate communications
+  enterprise-email-server:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.email-server
+    container_name: enterprise-email-server
+    volumes:
+      - enterprise-email-data:/var/mail
+      - ./containers/enterprise/data/email-archives/:/var/mail/archives/
+    environment:
+      - DOMAIN=acmefinancial.local
+      - ADMIN_EMAIL=admin@acmefinancial.local
+      - ADMIN_PASS=Em@ilAdm1n2024!
+    networks:
+      - enterprise-network
+
+  # Active Directory / LDAP Server
+  enterprise-domain-controller:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.domain-controller
+    container_name: enterprise-dc
+    volumes:
+      - enterprise-ad-data:/var/lib/samba
+      - ./containers/enterprise/data/user-accounts.ldif:/etc/ldap/users.ldif
+    environment:
+      - DOMAIN=ACMEFINANCIAL
+      - ADMIN_PASS=D0m@inAdm1n2024!
+      - REALM=ACMEFINANCIAL.LOCAL
+    networks:
+      - enterprise-network
+
+  # Vulnerable Web Application (Intentionally vulnerable for testing)
+  enterprise-legacy-app:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.legacy-app
+    container_name: enterprise-legacy-app
+    volumes:
+      - enterprise-legacy-data:/var/www/html
+    environment:
+      - APP_NAME=Legacy Financial Portal
+      - DB_HOST=enterprise-financial-db
+      - DB_USER=finance_app
+      - DB_PASS=F1n@pp2024!
+    networks:
+      - enterprise-network
+
+  # Enterprise Monitoring/SIEM (Blue Team Defense)
+  enterprise-security-monitoring:
+    build:
+      context: ./containers/enterprise
+      dockerfile: Dockerfile.security-monitoring
+    container_name: enterprise-siem
+    volumes:
+      - enterprise-security-logs:/var/log/security
+      - enterprise-siem-data:/var/lib/elasticsearch
+    environment:
+      - ELASTIC_PASSWORD=S3cur1tyM0n!2024
+      - MCP_SECURITY_TOOLS=enabled
+    ports:
+      - "5601:5601"  # Kibana
+      - "9200:9200"  # Elasticsearch
+    networks:
+      - enterprise-network
+      - archangel-combat
+
+  # =============================================================================
+  # TARGET ENTERPRISE ENVIRONMENT
+  # =============================================================================
+  enterprise-web-server:
+    image: nginx:alpine
+    container_name: enterprise-web
+    volumes:
+      - ./enterprise-data/web:/usr/share/nginx/html
+      - ./containers/enterprise/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - enterprise-network
+      - blue-team-network
+
+  enterprise-database:
+    image: postgres:15-alpine
+    container_name: enterprise-db
+    environment:
+      - POSTGRES_DB=enterprise_data
+      - POSTGRES_USER=enterprise_user
+      - POSTGRES_PASSWORD=enterprise_password_123
+    volumes:
+      - ./enterprise-data/database:/docker-entrypoint-initdb.d
+      - enterprise-db-data:/var/lib/postgresql/data
+    networks:
+      - enterprise-network
+
+  enterprise-file-server:
+    image: alpine/ftp-server
+    container_name: enterprise-ftp
+    environment:
+      - USERS=ftpuser|ftppass123
+    volumes:
+      - ./enterprise-data/files:/home/ftpuser
+    networks:
+      - enterprise-network
+
+  # =============================================================================
+  # AI INFRASTRUCTURE & SERVICES
+  # =============================================================================
+  huggingface-model-server:
+    build:
+      context: ./containers/ai-services
+      dockerfile: Dockerfile.hf-server
+    container_name: hf-model-server
+    volumes:
+      - archangel-hf-cache:/root/.cache/huggingface
+      - archangel-models:/models
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - CUDA_VISIBLE_DEVICES=all
+    ports:
+      - "8080:8080"  # Model serving API
+    networks:
+      - archangel-command
+    restart: unless-stopped
+
+  vector-db:
+    image: qdrant/qdrant
+    container_name: archangel-vector-db
+    volumes:
+      - vector-db-data:/qdrant/storage
+    ports:
+      - "6333:6333"  # Vector database API
+    networks:
+      - archangel-command
+    restart: unless-stopped
+
+  model-training-gpu:
+    build:
+      context: ./containers/ai-services
+      dockerfile: Dockerfile.training
+    container_name: model-training
+    volumes:
+      - archangel-hf-cache:/root/.cache/huggingface
+      - archangel-models:/models
+      - training-data:/training-data
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - CUDA_VISIBLE_DEVICES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+    networks:
+      - archangel-command
+    profiles:
+      - training
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # =============================================================================
+  # MONITORING & OBSERVABILITY
+  # =============================================================================
+  archangel-db:
+    image: postgres:15-alpine
+    container_name: archangel-database
+    environment:
+      - POSTGRES_DB=archangel
+      - POSTGRES_USER=archangel
+      - POSTGRES_PASSWORD=archangel_secure_password_2024
+    volumes:
+      - archangel-db-data:/var/lib/postgresql/data
+      - ./containers/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - archangel-command
+    restart: unless-stopped
+
+  archangel-cache:
+    image: redis:7-alpine
+    container_name: archangel-cache
+    volumes:
+      - archangel-redis-data:/data
+    networks:
+      - archangel-command
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: archangel-prometheus
+    volumes:
+      - ./containers/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - archangel-command
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    container_name: archangel-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=archangel_admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./containers/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3000:3000"
+    networks:
+      - archangel-command
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  # =============================================================================
+  # NETWORK SIMULATION & TRAFFIC GENERATION
+  # =============================================================================
+  network-simulator:
+    build:
+      context: ./containers/network
+      dockerfile: Dockerfile.simulator
+    container_name: network-simulator
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - network-configs:/configs
+    networks:
+      - archangel-combat
+      - enterprise-network
+    profiles:
+      - simulation
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  archangel-hf-cache:
+    driver: local
+  archangel-models:
+    driver: local
+  archangel-logs:
+    driver: local
+  archangel-db-data:
+    driver: local
+  archangel-redis-data:
+    driver: local
+  vector-db-data:
+    driver: local
+  training-data:
+    driver: local
+  red-team-data:
+    driver: local
+  red-team-data-2:
+    driver: local
+  red-team-exploits:
+    driver: local
+  red-team-wordlists:
+    driver: local
+  blue-team-data:
+    driver: local
+  blue-team-logs:
+    driver: local
+  blue-team-forensics:
+    driver: local
+  blue-team-intelligence:
+    driver: local
+  enterprise-db-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  network-configs:
+    driver: local
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  # Command and control network for AI orchestration
+  archangel-command:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+  # Combat network where red/blue teams interact
+  archangel-combat:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+
+  # Red team internal network
+  red-team-network:
+    driver: bridge
+    internal: true  # Isolated from external access
+    ipam:
+      config:
+        - subnet: 10.1.0.0/24
+
+  # Blue team internal network
+  blue-team-network:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.2.0.0/24
+
+  # Enterprise target network
+  enterprise-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.3.0.0/24

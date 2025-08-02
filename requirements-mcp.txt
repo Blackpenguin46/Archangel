@@ -1,0 +1,90 @@
+# Archangel MCP Integration Requirements
+# Model Context Protocol and external service integrations
+
+# Core MCP Protocol
+mcp>=0.1.0
+model-context-protocol>=0.1.0
+
+# Authentication and Security
+pyjwt>=2.8.0
+cryptography>=41.0.0
+bcrypt>=4.1.0
+passlib>=1.7.4
+
+# HTTP Client for External APIs
+aiohttp>=3.9.0
+httpx>=0.25.0
+requests>=2.31.0
+
+# Web Server for MCP Endpoints
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+starlette>=0.27.0
+
+# Database Connectivity
+asyncpg>=0.29.0
+sqlalchemy[asyncio]>=2.0.0
+alembic>=1.12.0
+
+# Configuration Management
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+
+# Monitoring and Metrics
+prometheus-client>=0.19.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+
+# Rate Limiting
+slowapi>=0.1.9
+redis>=5.0.0
+
+# External Service SDKs
+
+# Threat Intelligence
+virustotal-api>=1.1.11
+shodan>=1.31.0
+misp-python>=2.4.175
+
+# Vulnerability Databases
+cvelib>=1.2.0
+nvdlib>=0.7.6
+
+# Security Tools Integration
+python-nmap>=0.7.1
+shodan>=1.31.0
+
+# OSINT and Reconnaissance
+theHarvester>=4.5.1
+dnspython>=2.4.2
+python-whois>=0.8.0
+
+# Malware Analysis
+yara-python>=4.3.1
+pefile>=2023.2.7
+oletools>=0.60.1
+
+# Network Security
+scapy>=2.5.0
+netaddr>=0.10.1
+ipaddress>=1.0.23
+
+# Forensics and Memory Analysis
+volatility3>=2.5.0
+
+# Container and Orchestration
+docker>=6.1.0
+kubernetes>=28.1.0
+
+# Serialization and Data Processing
+msgpack>=1.0.7
+orjson>=3.9.0
+pandas>=2.1.0
+numpy>=1.25.0
+
+# Development and Testing
+pytest-asyncio>=0.21.0
+pytest-mock>=3.12.0
+factory-boy>=3.3.0
+faker>=20.0.0

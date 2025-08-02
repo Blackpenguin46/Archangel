@@ -1,0 +1,73 @@
+[
+  {
+    "technique_id": "T1566.001",
+    "technique_name": "Spearphishing Attachment",
+    "tactic": "Initial Access",
+    "description": "Adversaries may send spearphishing emails with a malicious attachment in an attempt to gain access to victim systems",
+    "detection": "Monitor for unusual email attachments and file executions",
+    "mitigation": "User training, email filtering, attachment sandboxing",
+    "platforms": [
+      "Windows",
+      "macOS",
+      "Linux"
+    ],
+    "data_sources": [
+      "Email Gateway",
+      "File Monitoring",
+      "Process Monitoring"
+    ]
+  },
+  {
+    "technique_id": "T1055",
+    "technique_name": "Process Injection",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may inject code into processes in order to evade process-based defenses",
+    "detection": "Monitor for unusual process behavior and memory modifications",
+    "mitigation": "Behavioral analysis, endpoint protection, process monitoring",
+    "platforms": [
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [
+      "Process Monitoring",
+      "API Monitoring",
+      "DLL Monitoring"
+    ]
+  },
+  {
+    "technique_id": "T1083",
+    "technique_name": "File and Directory Discovery",
+    "tactic": "Discovery",
+    "description": "Adversaries may enumerate files and directories or search in specific locations to find desired information",
+    "detection": "Monitor file and directory access patterns",
+    "mitigation": "File system monitoring, access controls",
+    "platforms": [
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [
+      "File Monitoring",
+      "Process Command-line Parameters"
+    ]
+  },
+  {
+    "technique_id": "T1105",
+    "technique_name": "Ingress Tool Transfer",
+    "tactic": "Command and Control",
+    "description": "Adversaries may transfer tools or other files from an external system into a compromised environment",
+    "detection": "Monitor network connections and file transfers",
+    "mitigation": "Network monitoring, application firewalls",
+    "platforms": [
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "data_sources": [
+      "Network Traffic",
+      "File Monitoring",
+      "Process Monitoring"
+    ]
+  }
+]

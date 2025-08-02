@@ -1,0 +1,72 @@
+# Archangel MCP Server Dockerfile
+# Multi-stage build for secure, minimal container
+
+FROM python:3.11-slim as base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r archangel && useradd -r -g archangel -u 1000 archangel
+
+# Set working directory
+WORKDIR /opt/archangel
+
+# Copy requirements
+COPY requirements.txt requirements-mcp.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-mcp.txt
+
+# Development stage with MCP tools
+FROM base as development
+
+# Install additional development tools
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-asyncio \
+    black \
+    flake8 \
+    mypy
+
+# Copy source code
+COPY . .
+
+# Change ownership to archangel user
+RUN chown -R archangel:archangel /opt/archangel
+
+# Production stage
+FROM base as production
+
+# Copy only necessary files
+COPY core/ ./core/
+COPY config/ ./config/
+COPY docker/mcp-server-entrypoint.sh ./entrypoint.sh
+
+# Create required directories
+RUN mkdir -p /var/log/archangel /opt/archangel/credentials && \
+    chown -R archangel:archangel /opt/archangel /var/log/archangel
+
+# Make entrypoint executable
+RUN chmod +x ./entrypoint.sh
+
+# Switch to non-root user
+USER archangel
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${MCP_PORT:-8881}/health || exit 1
+
+# Expose MCP port
+EXPOSE 8881 8882
+
+# Set entrypoint
+ENTRYPOINT ["./entrypoint.sh"]

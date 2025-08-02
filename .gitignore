@@ -1,4 +1,4 @@
-# Archangel Linux - Git Ignore Rules
+# Archangel AI vs AI Cybersecurity System - Git Ignore Rules
 
 # Environment variables (contains secrets!)
 .env
@@ -34,21 +34,23 @@ MANIFEST
 venv/
 env/
 ENV/
+archangel-env/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# PyCharm
+# IDE
 .idea/
-
-# VS Code
 .vscode/
+*.swp
+*.swo
+*~
 
 # Kernel build artifacts
-kernel/*.o
-kernel/*.ko
-kernel/*.mod
-kernel/*.mod.c
+kernel/src/*.o
+kernel/src/*.ko
+kernel/src/*.mod
+kernel/src/*.mod.c
 kernel/.*.cmd
 kernel/Module.symvers
 kernel/modules.order
@@ -57,6 +59,8 @@ kernel/.tmp_versions/
 # Logs
 *.log
 logs/
+blackhat_demo_*.log
+archangel.log
 
 # Temporary files
 *.tmp
@@ -74,6 +78,41 @@ tokens.txt
 *.db
 *.sqlite3
 
+# Large model files (use Git LFS instead)
+models/deepseek/*.safetensors
+models/deepseek/*.bin
+trained_models/**/*.safetensors
+trained_models/**/*.bin
+trained_models/**/*.pt
+
+# AI training data (too large for git)
+data/adversarial_training/
+data/models/large/
+
+# Test outputs and demo results
+test_results/
+demo_outputs/
+blackhat_demo_*.log
+
 # User-specific files
 .claude/
 .vscode/settings.json
+
+# MacOS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Docker volumes
+docker-data/

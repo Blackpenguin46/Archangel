@@ -1,0 +1,41 @@
+[
+  {
+    "cve_id": "CVE-2024-0001",
+    "description": "Remote code execution vulnerability in web application framework",
+    "severity": "CRITICAL",
+    "cvss_score": 9.8,
+    "affected_products": [
+      "Web Framework v2.1",
+      "Web Framework v2.2"
+    ],
+    "mitigation": "Update to patched version, implement input validation",
+    "published_date": "2024-01-15",
+    "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+  },
+  {
+    "cve_id": "CVE-2024-0002",
+    "description": "SQL injection vulnerability in database management system",
+    "severity": "HIGH",
+    "cvss_score": 8.1,
+    "affected_products": [
+      "Database System v3.0",
+      "Database System v3.1"
+    ],
+    "mitigation": "Apply security patch, use parameterized queries",
+    "published_date": "2024-01-20",
+    "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+  },
+  {
+    "cve_id": "CVE-2024-0003",
+    "description": "Privilege escalation vulnerability in operating system kernel",
+    "severity": "HIGH",
+    "cvss_score": 7.8,
+    "affected_products": [
+      "OS Kernel v5.4",
+      "OS Kernel v5.5"
+    ],
+    "mitigation": "Install kernel security update, enable security features",
+    "published_date": "2024-01-25",
+    "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+  }
+]

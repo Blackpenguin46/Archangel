@@ -1,0 +1,209 @@
+{
+  "mcp_architecture": {
+    "secret_key": "archangel_mcp_secret_key_production",
+    "isolation": {
+      "enable_team_isolation": true,
+      "shared_resources": [
+        "shodan_api",
+        "exploit_db",
+        "public_osint"
+      ],
+      "cross_team_communication": false,
+      "sandbox_mode": true
+    },
+    "security": {
+      "token_ttl_hours": 24,
+      "rate_limit_per_hour": 1000,
+      "require_mfa": false,
+      "audit_all_requests": true,
+      "encryption_enabled": true,
+      "credential_vault": "local_encrypted"
+    },
+    "performance": {
+      "max_concurrent_connections": 10,
+      "connection_timeout_seconds": 30,
+      "response_cache_ttl": 300,
+      "memory_limit_mb": 512,
+      "cpu_limit_cores": 1
+    }
+  },
+  "red_team_server": {
+    "server_id": "archangel_red_mcp",
+    "port": 8881,
+    "docker_network": "archangel_red_network",
+    "container_limits": {
+      "memory": "1GB",
+      "cpu": "0.5"
+    },
+    "external_resources": {
+      "metasploit_api": {
+        "enabled": true,
+        "endpoint": "https://localhost:55553",
+        "docker_service": "metasploit-framework",
+        "security_level": "restricted"
+      },
+      "shodan_api": {
+        "enabled": true,
+        "endpoint": "https://api.shodan.io",
+        "rate_limits": {
+          "requests_per_hour": 1000,
+          "requests_per_minute": 20
+        }
+      },
+      "nuclei_templates": {
+        "enabled": true,
+        "endpoint": "https://api.nuclei.org",
+        "docker_service": "nuclei-scanner"
+      },
+      "exploit_db": {
+        "enabled": true,
+        "endpoint": "https://www.exploit-db.com/api",
+        "public_access": true
+      }
+    },
+    "sdk_integrations": {
+      "metasploit": {
+        "docker_image": "metasploitframework/metasploit-framework:latest",
+        "ports": ["55553:55553"],
+        "environment": {
+          "MSFRPCD_USER": "msf",
+          "MSFRPCD_PASS": "msf_password"
+        }
+      },
+      "nmap": {
+        "docker_image": "instrumentisto/nmap:latest",
+        "capabilities": ["NET_RAW", "NET_ADMIN"]
+      },
+      "sqlmap": {
+        "docker_image": "sqlmapproject/sqlmap:latest",
+        "ports": ["8775:8775"]
+      },
+      "nuclei": {
+        "docker_image": "projectdiscovery/nuclei:latest",
+        "volumes": ["/tmp/nuclei-templates:/nuclei-templates"]
+      }
+    }
+  },
+  "blue_team_server": {
+    "server_id": "archangel_blue_mcp",
+    "port": 8882,
+    "docker_network": "archangel_blue_network",
+    "container_limits": {
+      "memory": "1GB",
+      "cpu": "0.5"
+    },
+    "external_resources": {
+      "virustotal_api": {
+        "enabled": true,
+        "endpoint": "https://www.virustotal.com/vtapi/v2",
+        "rate_limits": {
+          "requests_per_minute": 4,
+          "requests_per_day": 1000
+        },
+        "security_level": "standard"
+      },
+      "misp_api": {
+        "enabled": false,
+        "endpoint": "https://misp.example.com",
+        "security_level": "classified",
+        "requires_vpn": true
+      },
+      "osquery_api": {
+        "enabled": true,
+        "endpoint": "https://osquery.example.com:8443",
+        "docker_service": "osquery-fleet"
+      },
+      "yara_rules": {
+        "enabled": true,
+        "endpoint": "https://yara-rules.example.com",
+        "docker_service": "yara-scanner"
+      },
+      "elastic_siem": {
+        "enabled": false,
+        "endpoint": "https://elastic.example.com:9200",
+        "requires_enterprise": true
+      }
+    },
+    "sdk_integrations": {
+      "volatility3": {
+        "docker_image": "sk4la/volatility3:latest",
+        "volumes": ["/tmp/memory-dumps:/dumps"]
+      },
+      "suricata": {
+        "docker_image": "jasonish/suricata:latest",
+        "capabilities": ["NET_RAW", "NET_ADMIN"],
+        "volumes": ["/var/log/suricata:/var/log/suricata"]
+      },
+      "yara": {
+        "docker_image": "malice/yara:latest",
+        "volumes": ["/tmp/yara-rules:/rules"]
+      },
+      "osquery": {
+        "docker_image": "osquery/osquery:latest",
+        "privileged": true
+      }
+    }
+  },
+  "credentials": {
+    "vault_type": "local_encrypted",
+    "encryption_key_path": "/opt/archangel/keys/mcp_vault.key",
+    "credential_templates": {
+      "api_key": {
+        "fields": ["service_name", "api_key"],
+        "encryption": "required"
+      },
+      "api_token": {
+        "fields": ["service_name", "token", "expires_at"],
+        "encryption": "required"
+      },
+      "username_password": {
+        "fields": ["service_name", "username", "password"],
+        "encryption": "required"
+      },
+      "custom_headers": {
+        "fields": ["service_name", "headers"],
+        "encryption": "optional"
+      }
+    }
+  },
+  "monitoring": {
+    "enable_metrics": true,
+    "metrics_port": 8883,
+    "log_level": "INFO",
+    "audit_log_path": "/var/log/archangel/mcp_audit.log",
+    "performance_monitoring": {
+      "track_response_times": true,
+      "track_rate_limits": true,
+      "track_error_rates": true,
+      "alert_thresholds": {
+        "response_time_ms": 5000,
+        "error_rate_percent": 10,
+        "rate_limit_reached": true
+      }
+    }
+  },
+  "docker_integration": {
+    "compose_version": "3.8",
+    "network_mode": "bridge",
+    "dns_servers": ["8.8.8.8", "1.1.1.1"],
+    "restart_policy": "unless-stopped",
+    "logging": {
+      "driver": "json-file",
+      "options": {
+        "max-size": "10m",
+        "max-file": "3"
+      }
+    },
+    "security": {
+      "no_new_privileges": true,
+      "read_only_root_filesystem": false,
+      "user": "1000:1000"
+    }
+  },
+  "development": {
+    "mock_external_apis": true,
+    "enable_debug_logging": true,
+    "bypass_rate_limits": false,
+    "allow_insecure_connections": false
+  }
+}

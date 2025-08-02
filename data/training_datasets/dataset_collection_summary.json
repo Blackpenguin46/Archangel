@@ -1,0 +1,36 @@
+{
+  "total_datasets": 10,
+  "datasets": {
+    "cybersecurity_corpus": {
+      "entries": "Available"
+    },
+    "ms_marco_cyber": {
+      "entries": "Available"
+    },
+    "cti_dataset": {
+      "entries": "Available"
+    },
+    "incident_reports": {
+      "entries": "Available"
+    },
+    "cve_descriptions": {
+      "entries": "Available"
+    },
+    "cve_database": {
+      "entries": 3
+    },
+    "mitre_attack": {
+      "entries": 4
+    },
+    "security_advisories": {
+      "entries": 3
+    },
+    "threat_intelligence": {
+      "entries": 3
+    },
+    "malware_analysis": {
+      "entries": 2
+    }
+  },
+  "collection_date": "2025-01-31"
+}

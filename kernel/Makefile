@@ -4,9 +4,13 @@
 MODULE_NAME = archangel
 MODULE_VERSION = 0.1.0
 
-# Object files
+# Object files - Enhanced kernel modules
 obj-m += $(MODULE_NAME).o
-$(MODULE_NAME)-objs := src/archangel_main.o src/archangel_syscall.o src/archangel_communication.o
+$(MODULE_NAME)-objs := src/archangel_main.o \
+                      src/archangel_syscall.o \
+                      src/archangel_communication.o \
+                      src/archangel_memory.o \
+                      src/archangel_network.o
 
 # Kernel build directory
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build

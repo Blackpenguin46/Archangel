@@ -152,6 +152,11 @@ class GuardianProtocol:
         
         logger.info("Guardian Protocol initialized with multi-layer validation")
     
+    async def initialize(self):
+        """Initialize the Guardian Protocol system"""
+        logger.info("Guardian Protocol initialization complete")
+        return True
+    
     def _load_configuration(self):
         """Load Guardian Protocol configuration"""
         try:

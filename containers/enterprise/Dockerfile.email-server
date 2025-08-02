@@ -1,0 +1,421 @@
+# Enterprise Email Server - Postfix/Dovecot with webmail access
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAIL_DOMAIN=acmefinancial.local
+ENV ADMIN_EMAIL=admin@acmefinancial.local
+ENV ADMIN_PASS=M@il_Acm3_2024!
+
+# Install mail server components
+RUN apt-get update && apt-get install -y \
+    postfix \
+    dovecot-core \
+    dovecot-imapd \
+    dovecot-pop3d \
+    dovecot-lmtpd \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-imap \
+    php8.1-mysql \
+    php8.1-curl \
+    php8.1-json \
+    curl \
+    wget \
+    vim \
+    mailutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Postfix
+RUN echo "postfix postfix/mailname string $MAIL_DOMAIN" | debconf-set-selections && \
+    echo "postfix postfix/main_mailer_type string 'Internet Site'" | debconf-set-selections
+
+# Create mail directories
+RUN mkdir -p /var/mail/vhosts/$MAIL_DOMAIN && \
+    groupadd -g 5000 vmail && \
+    useradd -g vmail -u 5000 vmail -d /var/mail/vhosts -m && \
+    chown -R vmail:vmail /var/mail/vhosts
+
+# Configure Postfix main.cf
+RUN echo "# Basic Configuration\n\
+myhostname = mail.$MAIL_DOMAIN\n\
+mydomain = $MAIL_DOMAIN\n\
+myorigin = /etc/mailname\n\
+inet_interfaces = all\n\
+mydestination = localhost\n\
+relayhost =\n\
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 172.16.0.0/12 192.168.0.0/16\n\
+mailbox_size_limit = 0\n\
+recipient_delimiter = +\n\
+inet_protocols = ipv4\n\
+\n\
+# Virtual Domain Configuration\n\
+virtual_mailbox_domains = $MAIL_DOMAIN\n\
+virtual_mailbox_base = /var/mail/vhosts\n\
+virtual_mailbox_maps = hash:/etc/postfix/vmailbox\n\
+virtual_alias_maps = hash:/etc/postfix/virtual\n\
+virtual_minimum_uid = 100\n\
+virtual_uid_maps = static:5000\n\
+virtual_gid_maps = static:5000\n\
+\n\
+# Security (intentionally weak for penetration testing)\n\
+smtpd_banner = Acme Financial Mail Server ESMTP\n\
+biff = no\n\
+append_dot_mydomain = no\n\
+readme_directory = no\n\
+\n\
+# SMTP Authentication\n\
+smtpd_sasl_type = dovecot\n\
+smtpd_sasl_path = private/auth\n\
+smtpd_sasl_auth_enable = yes\n\
+smtpd_sasl_security_options = noanonymous\n\
+smtpd_sasl_local_domain = $MAIL_DOMAIN\n\
+\n\
+# Relaxed restrictions for testing\n\
+smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination\n\
+smtpd_sender_restrictions = permit_sasl_authenticated,permit_mynetworks\n\
+disable_vrfy_command = no" > /etc/postfix/main.cf
+
+# Create virtual mailbox mapping
+RUN echo "# Virtual Mailboxes\n\
+admin@$MAIL_DOMAIN    $MAIL_DOMAIN/admin/\n\
+rbillionaire@$MAIL_DOMAIN    $MAIL_DOMAIN/rbillionaire/\n\
+vexecutive@$MAIL_DOMAIN      $MAIL_DOMAIN/vexecutive/\n\
+sgoldman@$MAIL_DOMAIN        $MAIL_DOMAIN/sgoldman/\n\
+msterling@$MAIL_DOMAIN       $MAIL_DOMAIN/msterling/\n\
+rsecurity@$MAIL_DOMAIN       $MAIL_DOMAIN/rsecurity/\n\
+finance@$MAIL_DOMAIN         $MAIL_DOMAIN/finance/\n\
+hr@$MAIL_DOMAIN              $MAIL_DOMAIN/hr/\n\
+support@$MAIL_DOMAIN         $MAIL_DOMAIN/support/\n\
+backup@$MAIL_DOMAIN          $MAIL_DOMAIN/backup/" > /etc/postfix/vmailbox
+
+# Create virtual aliases
+RUN echo "# Virtual Aliases\n\
+postmaster@$MAIL_DOMAIN    admin@$MAIL_DOMAIN\n\
+webmaster@$MAIL_DOMAIN     admin@$MAIL_DOMAIN\n\
+abuse@$MAIL_DOMAIN         admin@$MAIL_DOMAIN\n\
+ceo@$MAIL_DOMAIN           rbillionaire@$MAIL_DOMAIN\n\
+cfo@$MAIL_DOMAIN           sgoldman@$MAIL_DOMAIN\n\
+ciso@$MAIL_DOMAIN          rsecurity@$MAIL_DOMAIN\n\
+president@$MAIL_DOMAIN     vexecutive@$MAIL_DOMAIN" > /etc/postfix/virtual
+
+# Configure Dovecot
+RUN echo "# Basic Configuration\n\
+protocols = imap pop3 lmtp\n\
+listen = *, ::\n\
+base_dir = /var/run/dovecot/\n\
+instance_name = dovecot\n\
+\n\
+# Mail Location\n\
+mail_location = maildir:/var/mail/vhosts/%d/%n\n\
+mail_privileged_group = mail\n\
+mail_uid = vmail\n\
+mail_gid = vmail\n\
+\n\
+# Authentication\n\
+auth_mechanisms = plain login\n\
+auth_username_format = %Lu\n\
+\n\
+userdb {\n\
+  driver = passwd-file\n\
+  args = username_format=%u /etc/dovecot/dovecot-users\n\
+}\n\
+\n\
+passdb {\n\
+  driver = passwd-file\n\
+  args = username_format=%u /etc/dovecot/dovecot-users\n\
+}\n\
+\n\
+# IMAP Configuration\n\
+service imap-login {\n\
+  inet_listener imap {\n\
+    port = 143\n\
+  }\n\
+}\n\
+\n\
+# POP3 Configuration\n\
+service pop3-login {\n\
+  inet_listener pop3 {\n\
+    port = 110\n\
+  }\n\
+}\n\
+\n\
+# LMTP Configuration\n\
+service lmtp {\n\
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {\n\
+    group = postfix\n\
+    mode = 0600\n\
+    user = postfix\n\
+  }\n\
+}\n\
+\n\
+# Auth Service\n\
+service auth {\n\
+  unix_listener /var/spool/postfix/private/auth {\n\
+    mode = 0666\n\
+    user = postfix\n\
+    group = postfix\n\
+  }\n\
+  unix_listener auth-userdb {\n\
+    mode = 0600\n\
+    user = vmail\n\
+    group = vmail\n\
+  }\n\
+  user = dovecot\n\
+}" > /etc/dovecot/dovecot.conf
+
+# Create user database with weak passwords for testing
+RUN echo "# Dovecot Users (format: user:password:uid:gid::home:shell)\n\
+admin@acmefinancial.local:{PLAIN}admin123:5000:5000::/var/mail/vhosts/acmefinancial.local/admin:/bin/false\n\
+rbillionaire@acmefinancial.local:{PLAIN}billionaire2024:5000:5000::/var/mail/vhosts/acmefinancial.local/rbillionaire:/bin/false\n\
+vexecutive@acmefinancial.local:{PLAIN}executive123:5000:5000::/var/mail/vhosts/acmefinancial.local/vexecutive:/bin/false\n\
+sgoldman@acmefinancial.local:{PLAIN}goldman2024:5000:5000::/var/mail/vhosts/acmefinancial.local/sgoldman:/bin/false\n\
+msterling@acmefinancial.local:{PLAIN}sterling123:5000:5000::/var/mail/vhosts/acmefinancial.local/msterling:/bin/false\n\
+rsecurity@acmefinancial.local:{PLAIN}security2024:5000:5000::/var/mail/vhosts/acmefinancial.local/rsecurity:/bin/false\n\
+finance@acmefinancial.local:{PLAIN}finance123:5000:5000::/var/mail/vhosts/acmefinancial.local/finance:/bin/false\n\
+hr@acmefinancial.local:{PLAIN}hr2024:5000:5000::/var/mail/vhosts/acmefinancial.local/hr:/bin/false\n\
+support@acmefinancial.local:{PLAIN}support123:5000:5000::/var/mail/vhosts/acmefinancial.local/support:/bin/false\n\
+backup@acmefinancial.local:{PLAIN}backup2024:5000:5000::/var/mail/vhosts/acmefinancial.local/backup:/bin/false" > /etc/dovecot/dovecot-users
+
+# Create webmail interface
+RUN mkdir -p /var/www/webmail
+RUN echo '<?php\n\
+// Simple Webmail Interface - Vulnerable for Penetration Testing\n\
+session_start();\n\
+\n\
+$mail_server = "localhost";\n\
+$mail_domain = "acmefinancial.local";\n\
+\n\
+// Handle login\n\
+if ($_POST["username"] && $_POST["password"]) {\n\
+    $username = $_POST["username"];\n\
+    $password = $_POST["password"];\n\
+    \n\
+    // VULNERABLE: Store credentials in session without encryption\n\
+    $_SESSION["username"] = $username;\n\
+    $_SESSION["password"] = $password;\n\
+    $_SESSION["loggedin"] = true;\n\
+    \n\
+    // Simple authentication check (vulnerable to injection)\n\
+    $full_email = strpos($username, "@") ? $username : $username . "@" . $mail_domain;\n\
+    \n\
+    // Simulate successful login (in real scenario, would check against IMAP)\n\
+    if (strlen($password) > 3) {\n\
+        header("Location: mailbox.php");\n\
+        exit;\n\
+    }\n\
+}\n\
+\n\
+// Handle logout\n\
+if ($_GET["logout"]) {\n\
+    session_destroy();\n\
+    header("Location: index.php");\n\
+    exit;\n\
+}\n\
+\n\
+if ($_SESSION["loggedin"]) {\n\
+    header("Location: mailbox.php");\n\
+    exit;\n\
+}\n\
+?>\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Acme Financial - Webmail Login</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: 0; padding: 20px; }\n\
+        .container { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.3); }\n\
+        .logo { text-align: center; color: #1e3c72; margin-bottom: 30px; }\n\
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }\n\
+        button { width: 100%; background: #1e3c72; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }\n\
+        .credentials { background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; font-family: monospace; font-size: 12px; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <div class="logo">\n\
+            <h1>📧 Acme Financial Mail</h1>\n\
+            <p>Secure Email Access</p>\n\
+        </div>\n\
+        \n\
+        <form method="POST">\n\
+            <input type="text" name="username" placeholder="Email or Username" required>\n\
+            <input type="password" name="password" placeholder="Password" required>\n\
+            <button type="submit">Login</button>\n\
+        </form>\n\
+        \n\
+        <div class="credentials">\n\
+            <strong>Test Accounts:</strong><br>\n\
+            admin / admin123<br>\n\
+            rbillionaire / billionaire2024<br>\n\
+            sgoldman / goldman2024<br>\n\
+            finance / finance123\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/webmail/index.php
+
+RUN echo '<?php\n\
+session_start();\n\
+if (!$_SESSION["loggedin"]) {\n\
+    header("Location: index.php");\n\
+    exit;\n\
+}\n\
+\n\
+$username = $_SESSION["username"];\n\
+$email = strpos($username, "@") ? $username : $username . "@acmefinancial.local";\n\
+\n\
+// Sample email data (in real scenario would come from IMAP)\n\
+$emails = [\n\
+    [\n\
+        "from" => "richard.billionaire@acmefinancial.local",\n\
+        "subject" => "CONFIDENTIAL: Merger Update",\n\
+        "date" => "2024-08-01 09:00",\n\
+        "body" => "Continental Bank acquisition approved by board. $15B deal closing Q1 2025. Keep confidential until announcement."\n\
+    ],\n\
+    [\n\
+        "from" => "sarah.goldman@acmefinancial.local",\n\
+        "subject" => "Q3 Financial Results - Internal",\n\
+        "date" => "2024-08-01 08:30",\n\
+        "body" => "Preliminary Q3 results show $3.2B profit. Some accounting adjustments made per executive guidance. Full report attached."\n\
+    ],\n\
+    [\n\
+        "from" => "compliance@acmefinancial.local",\n\
+        "subject" => "Regulatory Investigation Update",\n\
+        "date" => "2024-07-31 16:45",\n\
+        "body" => "SEC investigation into trading practices ongoing. All employees must preserve documents. Legal team coordinating response."\n\
+    ],\n\
+    [\n\
+        "from" => "backup@acmefinancial.local",\n\
+        "subject" => "Database Backup Credentials",\n\
+        "date" => "2024-07-30 22:00",\n\
+        "body" => "Weekly backup completed. Server: backup.acmefinancial.local, User: backup_admin, Pass: B@ckup_Acm3_2024!"\n\
+    ],\n\
+    [\n\
+        "from" => "hr@acmefinancial.local",\n\
+        "subject" => "Employee Termination List - Confidential",\n\
+        "date" => "2024-07-29 14:20",\n\
+        "body" => "Upcoming workforce reduction: 500 employees affected. Severance packages prepared. Execute on August 15th."\n\
+    ]\n\
+];\n\
+\n\
+$selected_email = isset($_GET["id"]) ? (int)$_GET["id"] : null;\n\
+?>\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Webmail - <?php echo htmlspecialchars($email); ?></title>\n\
+    <style>\n\
+        body { font-family: Arial; background: #f5f5f5; margin: 0; }\n\
+        .header { background: #1e3c72; color: white; padding: 15px; }\n\
+        .container { display: flex; min-height: calc(100vh - 60px); }\n\
+        .sidebar { width: 250px; background: white; border-right: 1px solid #ddd; }\n\
+        .content { flex: 1; background: white; margin-left: 10px; }\n\
+        .email-list { list-style: none; padding: 0; margin: 0; }\n\
+        .email-list li { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }\n\
+        .email-list li:hover { background: #f8f9fa; }\n\
+        .email-list li.selected { background: #e3f2fd; }\n\
+        .email-content { padding: 20px; }\n\
+        .email-header { background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; }\n\
+        .email-body { line-height: 1.6; }\n\
+        .confidential { background: #ffebee; border-left: 4px solid #f44336; padding: 10px; margin: 10px 0; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="header">\n\
+        <h2>📧 Acme Financial Webmail - <?php echo htmlspecialchars($email); ?></h2>\n\
+        <a href="?logout=1" style="color: white; float: right;">Logout</a>\n\
+    </div>\n\
+    \n\
+    <div class="container">\n\
+        <div class="sidebar">\n\
+            <ul class="email-list">\n\
+                <?php foreach ($emails as $index => $email_item): ?>\n\
+                <li class="<?php echo $selected_email === $index ? \"selected\" : \"\"; ?>" onclick="window.location.href=\"?id=<?php echo $index; ?>\"">\n\
+                    <strong><?php echo htmlspecialchars($email_item["subject"]); ?></strong><br>\n\
+                    <small><?php echo htmlspecialchars($email_item["from"]); ?></small><br>\n\
+                    <small style="color: #666;"><?php echo $email_item["date"]; ?></small>\n\
+                </li>\n\
+                <?php endforeach; ?>\n\
+            </ul>\n\
+        </div>\n\
+        \n\
+        <div class="content">\n\
+            <?php if ($selected_email !== null && isset($emails[$selected_email])): ?>\n\
+                <?php $email_item = $emails[$selected_email]; ?>\n\
+                <div class="email-content">\n\
+                    <div class="email-header">\n\
+                        <h2><?php echo htmlspecialchars($email_item["subject"]); ?></h2>\n\
+                        <p><strong>From:</strong> <?php echo htmlspecialchars($email_item["from"]); ?></p>\n\
+                        <p><strong>To:</strong> <?php echo htmlspecialchars($email); ?></p>\n\
+                        <p><strong>Date:</strong> <?php echo $email_item["date"]; ?></p>\n\
+                    </div>\n\
+                    \n\
+                    <div class="confidential">\n\
+                        ⚠️ <strong>CONFIDENTIAL:</strong> This email contains sensitive business information.\n\
+                    </div>\n\
+                    \n\
+                    <div class="email-body">\n\
+                        <p><?php echo nl2br(htmlspecialchars($email_item["body"])); ?></p>\n\
+                    </div>\n\
+                </div>\n\
+            <?php else: ?>\n\
+                <div class="email-content">\n\
+                    <h2>Select an email to read</h2>\n\
+                    <p>Choose an email from the list to view its contents.</p>\n\
+                </div>\n\
+            <?php endif; ?>\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/webmail/mailbox.php
+
+# Configure Apache for webmail
+RUN echo "<VirtualHost *:80>\n\
+    DocumentRoot /var/www/webmail\n\
+    ServerName webmail.acmefinancial.local\n\
+    \n\
+    <Directory /var/www/webmail>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+        DirectoryIndex index.php\n\
+    </Directory>\n\
+    \n\
+    ErrorLog /var/log/apache2/webmail-error.log\n\
+    CustomLog /var/log/apache2/webmail-access.log combined\n\
+</VirtualHost>" > /etc/apache2/sites-available/webmail.conf
+
+RUN a2ensite webmail.conf && a2dissite 000-default.conf && a2enmod php8.1
+
+# Build postfix hash maps
+RUN postmap /etc/postfix/virtual && postmap /etc/postfix/vmailbox
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Start Postfix\n\
+service postfix start\n\
+\n\
+# Start Dovecot\n\
+service dovecot start\n\
+\n\
+# Start Apache\n\
+service apache2 start\n\
+\n\
+# Send test emails\n\
+sleep 10\n\
+echo "Test email from admin" | mail -s "Welcome to Acme Financial Mail" admin@acmefinancial.local\n\
+\n\
+# Keep container running\n\
+tail -f /var/log/mail.log /var/log/apache2/access.log 2>/dev/null' > /start.sh && chmod +x /start.sh
+
+# Expose ports
+EXPOSE 25 110 143 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost/ && netstat -ln | grep -q ":25 " && netstat -ln | grep -q ":143 " || exit 1
+
+# Start services
+CMD ["/start.sh"]

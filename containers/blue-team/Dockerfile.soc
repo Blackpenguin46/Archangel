@@ -1,0 +1,189 @@
+# Blue Team SOC Container - AI-Enhanced Defensive Cybersecurity
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HF_HOME=/root/.cache/huggingface
+ENV PYTHONPATH=/app
+
+# Install base system updates and security tools
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    wget \
+    net-tools \
+    nmap \
+    tcpdump \
+    wireshark \
+    tshark \
+    suricata \
+    snort \
+    zeek \
+    osquery \
+    auditd \
+    fail2ban \
+    rkhunter \
+    chkrootkit \
+    clamav \
+    clamav-daemon \
+    lynis \
+    aide \
+    samhain \
+    tripwire \
+    logwatch \
+    logrotate \
+    rsyslog \
+    syslog-ng \
+    filebeat \
+    metricbeat \
+    packetbeat \
+    heartbeat-elastic \
+    elastic-agent \
+    kibana \
+    elasticsearch \
+    logstash \
+    grafana \
+    prometheus \
+    node-exporter \
+    alertmanager \
+    velociraptor \
+    yara \
+    capa \
+    volatility3 \
+    autopsy \
+    sleuthkit \
+    regripper \
+    log2timeline \
+    plaso \
+    timeline-explorer \
+    hayabusa \
+    chainsaw \
+    sigma \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for AI-enhanced detection
+RUN pip3 install --no-cache-dir \
+    torch \
+    transformers \
+    datasets \
+    huggingface-hub \
+    accelerate \
+    peft \
+    scikit-learn \
+    pandas \
+    numpy \
+    matplotlib \
+    seaborn \
+    plotly \
+    dash \
+    streamlit \
+    jupyter \
+    ipykernel \
+    asyncio \
+    websockets \
+    requests \
+    flask \
+    fastapi \
+    uvicorn \
+    celery \
+    redis \
+    elasticsearch-dsl \
+    kibana-api \
+    sigma-cli \
+    pysigma \
+    yara-python \
+    volatility3 \
+    pcapy \
+    scapy \
+    netaddr \
+    pyshark \
+    dpkt \
+    python-evtx \
+    python-registry \
+    pefile \
+    ssdeep \
+    tlsh \
+    fuzzy \
+    networkx \
+    igraph \
+    community \
+    sklearn \
+    xgboost \
+    lightgbm \
+    catboost \
+    tensorflow \
+    keras \
+    statsmodels \
+    scipy \
+    yellowbrick \
+    imbalanced-learn \
+    feature-engine \
+    mlxtend
+
+# Create application directory
+WORKDIR /app
+
+# Copy application files
+COPY . /app/
+
+# Create specialized directories
+RUN mkdir -p /data/logs \
+             /data/alerts \
+             /data/reports \
+             /data/forensics \
+             /data/intelligence \
+             /data/models \
+             /data/rules \
+             /data/dashboards \
+             /data/investigations \
+             /var/log/security
+
+# Install custom blue team tools
+COPY containers/blue-team/tools/ /opt/blue-team-tools/
+RUN chmod +x /opt/blue-team-tools/*.sh
+
+# Configure SIEM components
+RUN mkdir -p /etc/suricata/rules \
+             /etc/snort/rules \
+             /etc/zeek/policy \
+             /etc/sigma/rules
+
+# Copy security rules and configurations
+COPY containers/blue-team/configs/suricata.yaml /etc/suricata/
+COPY containers/blue-team/configs/snort.conf /etc/snort/
+COPY containers/blue-team/rules/ /etc/suricata/rules/
+COPY containers/blue-team/sigma-rules/ /etc/sigma/rules/
+
+# Set up ClamAV
+RUN freshclam || true
+
+# Configure log aggregation
+COPY containers/blue-team/configs/rsyslog.conf /etc/rsyslog.conf
+COPY containers/blue-team/configs/logrotate.conf /etc/logrotate.conf
+
+# Create blue team AI agent script
+COPY containers/blue-team/blue_team_soc_agent.py /app/
+RUN chmod +x /app/blue_team_soc_agent.py
+
+# Set up environment
+ENV TEAM_ROLE=soc_analyst
+ENV AI_MODEL_PATH=/data/models/blue_team_detection
+ENV TOOLS_PATH=/opt/blue-team-tools
+ENV DATA_PATH=/data
+ENV RULES_PATH=/etc/sigma/rules
+
+# Expose ports
+EXPOSE 8080 8443 9200 5601 3000 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import requests; requests.get('http://localhost:8080/health')" || exit 1
+
+# Start services
+COPY containers/blue-team/start-soc.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/start-soc.sh
+
+CMD ["/usr/local/bin/start-soc.sh"]

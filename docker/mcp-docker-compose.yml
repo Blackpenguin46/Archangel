@@ -1,0 +1,409 @@
+version: '3.8'
+
+networks:
+  archangel_red_network:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  
+  archangel_blue_network:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+  
+  archangel_monitoring:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+
+volumes:
+  mcp_credentials:
+    driver: local
+  metasploit_data:
+    driver: local
+  volatility_dumps:
+    driver: local
+  yara_rules:
+    driver: local
+  nuclei_templates:
+    driver: local
+  suricata_logs:
+    driver: local
+
+services:
+  # Red Team MCP Server
+  archangel-red-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp-server
+      args:
+        TEAM_TYPE: red_team
+    container_name: archangel-red-mcp
+    hostname: red-mcp-server
+    networks:
+      - archangel_red_network
+      - archangel_monitoring
+    ports:
+      - "8881:8881"  # MCP Server Port
+    environment:
+      - TEAM_TYPE=red_team
+      - MCP_PORT=8881
+      - LOG_LEVEL=INFO
+      - SECURITY_MODE=restricted
+    volumes:
+      - mcp_credentials:/opt/archangel/credentials:ro
+      - ../config/mcp_config.json:/opt/archangel/config/mcp_config.json:ro
+      - ../logs:/var/log/archangel
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    user: "1000:1000"
+    mem_limit: 1g
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8881/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Blue Team MCP Server
+  archangel-blue-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp-server
+      args:
+        TEAM_TYPE: blue_team
+    container_name: archangel-blue-mcp
+    hostname: blue-mcp-server
+    networks:
+      - archangel_blue_network
+      - archangel_monitoring
+    ports:
+      - "8882:8882"  # MCP Server Port
+    environment:
+      - TEAM_TYPE=blue_team
+      - MCP_PORT=8882
+      - LOG_LEVEL=INFO
+      - SECURITY_MODE=monitoring
+    volumes:
+      - mcp_credentials:/opt/archangel/credentials:ro
+      - ../config/mcp_config.json:/opt/archangel/config/mcp_config.json:ro
+      - ../logs:/var/log/archangel
+      - volatility_dumps:/tmp/memory-dumps
+      - suricata_logs:/var/log/suricata
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_RAW  # For network monitoring tools
+    user: "1000:1000"
+    mem_limit: 1g
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Red Team Tools - Metasploit Framework
+  metasploit-framework:
+    image: metasploitframework/metasploit-framework:latest
+    container_name: archangel-metasploit
+    hostname: metasploit-server
+    networks:
+      - archangel_red_network
+    ports:
+      - "55553:55553"  # MSFRPCD Port
+    environment:
+      - MSFRPCD_USER=msf
+      - MSFRPCD_PASS=archangel_msf_2024
+      - MSF_DATABASE_URL=postgres://msf:msf@postgres:5432/msf
+    volumes:
+      - metasploit_data:/home/msf/.msf4
+    command: >
+      sh -c "
+        service postgresql start &&
+        msfdb init &&
+        msfrpcd -P archangel_msf_2024 -U msf -a 0.0.0.0 -p 55553 -S -f
+      "
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    mem_limit: 2g
+    cpus: 1.0
+    depends_on:
+      - archangel-red-mcp
+
+  # Red Team Tools - Nuclei Scanner
+  nuclei-scanner:
+    image: projectdiscovery/nuclei:latest
+    container_name: archangel-nuclei
+    hostname: nuclei-scanner
+    networks:
+      - archangel_red_network
+    environment:
+      - NUCLEI_CONFIG_DIR=/nuclei-config
+    volumes:
+      - nuclei_templates:/nuclei-templates
+      - ../tools/nuclei-config:/nuclei-config:ro
+    command: ["sleep", "infinity"]  # Keep container running for API calls
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    user: "1000:1000"
+    mem_limit: 512m
+    cpus: 0.5
+    depends_on:
+      - archangel-red-mcp
+
+  # Red Team Tools - SQLMap
+  sqlmap:
+    image: sqlmapproject/sqlmap:latest
+    container_name: archangel-sqlmap
+    hostname: sqlmap-server
+    networks:
+      - archangel_red_network
+    ports:
+      - "8775:8775"  # SQLMap API Port
+    command: >
+      sh -c "
+        python3 sqlmapapi.py -s -H 0.0.0.0 -p 8775
+      "
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "1000:1000"
+    mem_limit: 512m
+    cpus: 0.25
+    depends_on:
+      - archangel-red-mcp
+
+  # Blue Team Tools - Volatility3 Memory Analysis
+  volatility3:
+    image: sk4la/volatility3:latest
+    container_name: archangel-volatility3
+    hostname: volatility3-server
+    networks:
+      - archangel_blue_network
+    volumes:
+      - volatility_dumps:/dumps
+      - ../tools/volatility-symbols:/symbols:ro
+    command: ["sleep", "infinity"]  # Keep container running for API calls
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "1000:1000"
+    mem_limit: 2g
+    cpus: 1.0
+    depends_on:
+      - archangel-blue-mcp
+
+  # Blue Team Tools - Suricata IDS
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: archangel-suricata
+    hostname: suricata-ids
+    networks:
+      - archangel_blue_network
+    volumes:
+      - suricata_logs:/var/log/suricata
+      - ../tools/suricata-rules:/etc/suricata/rules:ro
+      - ../tools/suricata-config/suricata.yaml:/etc/suricata/suricata.yaml:ro
+    environment:
+      - SURICATA_OPTIONS=-i eth0
+    command: >
+      sh -c "
+        suricata -c /etc/suricata/suricata.yaml -i eth0 -D &&
+        tail -f /var/log/suricata/eve.json
+      "
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    network_mode: host
+    mem_limit: 1g
+    cpus: 0.5
+    depends_on:
+      - archangel-blue-mcp
+
+  # Blue Team Tools - YARA Scanner
+  yara-scanner:
+    image: malice/yara:latest
+    container_name: archangel-yara
+    hostname: yara-scanner
+    networks:
+      - archangel_blue_network
+    volumes:
+      - yara_rules:/rules
+      - ../tools/yara-rules:/custom-rules:ro
+    command: ["sleep", "infinity"]  # Keep container running for API calls
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "1000:1000"
+    mem_limit: 512m
+    cpus: 0.25
+    depends_on:
+      - archangel-blue-mcp
+
+  # Blue Team Tools - OSQuery
+  osquery:
+    image: osquery/osquery:latest
+    container_name: archangel-osquery
+    hostname: osquery-agent
+    networks:
+      - archangel_blue_network
+    volumes:
+      - /var/log:/host/var/log:ro
+      - /etc:/host/etc:ro
+      - ../tools/osquery-config:/etc/osquery:ro
+    command: >
+      sh -c "
+        osqueryd --config_path=/etc/osquery/osquery.conf --logger_path=/var/log/osquery
+      "
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_PTRACE
+      - DAC_READ_SEARCH
+    pid: host
+    user: "0:0"  # OSQuery needs root for system monitoring
+    mem_limit: 512m
+    cpus: 0.25
+    depends_on:
+      - archangel-blue-mcp
+
+  # Monitoring and Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: archangel-prometheus
+    hostname: prometheus-server
+    networks:
+      - archangel_monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "65534:65534"
+    mem_limit: 512m
+    cpus: 0.25
+
+  # Log Aggregation
+  fluentd:
+    image: fluent/fluentd:latest
+    container_name: archangel-fluentd
+    hostname: log-aggregator
+    networks:
+      - archangel_monitoring
+    ports:
+      - "24224:24224"
+    volumes:
+      - ../monitoring/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - ../logs:/var/log/archangel
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "100:101"
+    mem_limit: 256m
+    cpus: 0.25
+
+  # Reverse Proxy and Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: archangel-nginx
+    hostname: mcp-proxy
+    networks:
+      - archangel_monitoring
+      - archangel_red_network
+      - archangel_blue_network
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/ssl:/etc/nginx/ssl:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    user: "101:101"
+    mem_limit: 128m
+    cpus: 0.1
+    depends_on:
+      - archangel-red-mcp
+      - archangel-blue-mcp
+
+  # Database for persistent storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: archangel-postgres
+    hostname: mcp-database
+    networks:
+      - archangel_monitoring
+    environment:
+      - POSTGRES_DB=archangel_mcp
+      - POSTGRES_USER=archangel
+      - POSTGRES_PASSWORD=archangel_db_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    cap_drop:
+      - ALL
+    user: "999:999"
+    mem_limit: 512m
+    cpus: 0.5
+
+volumes:
+  postgres_data:
+    driver: local

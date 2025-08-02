@@ -1,0 +1,335 @@
+# Enterprise HR System - Web application with employee data
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV FLASK_APP=hr_portal.py
+ENV FLASK_ENV=development
+ENV SECRET_KEY=hr_secret_key_2024_vulnerable
+ENV DATABASE_URL=mysql://hr_app:HRp@ss2024!@enterprise-financial-db:3306/financial_records
+
+# Install Python, Flask and dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    mysql-client \
+    curl \
+    wget \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create application directory
+WORKDIR /app
+
+# Install Python packages
+RUN pip3 install \
+    flask==2.3.0 \
+    flask-mysql==1.5.2 \
+    PyMySQL==1.1.0 \
+    requests==2.31.0 \
+    cryptography==41.0.0
+
+# Create HR portal application
+RUN echo 'import os\n\
+import mysql.connector\n\
+from flask import Flask, request, render_template_string, jsonify, session, redirect, flash\n\
+import hashlib\n\
+\n\
+app = Flask(__name__)\n\
+app.secret_key = os.environ.get("SECRET_KEY", "hr_vulnerable_key")\n\
+\n\
+# Database configuration\n\
+DB_CONFIG = {\n\
+    "host": "enterprise-financial-db",\n\
+    "user": "hr_app",\n\
+    "password": "HRp@ss2024!",\n\
+    "database": "financial_records"\n\
+}\n\
+\n\
+def get_db_connection():\n\
+    return mysql.connector.connect(**DB_CONFIG)\n\
+\n\
+# Vulnerable login template\n\
+LOGIN_TEMPLATE = """\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Acme Financial - HR Portal</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 20px; }\n\
+        .container { max-width: 500px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.3); }\n\
+        .logo { text-align: center; color: #667eea; margin-bottom: 30px; }\n\
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }\n\
+        button { width: 100%; background: #667eea; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }\n\
+        .error { color: red; margin: 15px 0; }\n\
+        .debug { background: #f8f8f8; padding: 15px; margin: 15px 0; border-left: 4px solid #667eea; font-family: monospace; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <div class="logo">\n\
+            <h1>👥 HR Portal</h1>\n\
+            <p>Employee Management System</p>\n\
+        </div>\n\
+        \n\
+        <form method="POST">\n\
+            <input type="text" name="employee_id" placeholder="Employee ID" required>\n\
+            <input type="password" name="password" placeholder="Password" required>\n\
+            <button type="submit">Login</button>\n\
+        </form>\n\
+        \n\
+        {% if error %}\n\
+        <div class="error">{{ error }}</div>\n\
+        {% endif %}\n\
+        \n\
+        <div class="debug">\n\
+            <strong>Debug Info:</strong><br>\n\
+            Server: {{ request.headers.get("Host") }}<br>\n\
+            IP: {{ request.remote_addr }}<br>\n\
+            {% if query %}\n\
+            Last Query: {{ query }}<br>\n\
+            {% endif %}\n\
+        </div>\n\
+        \n\
+        <p style="font-size: 12px; color: #666; text-align: center;">\n\
+            Default Credentials: EMP001 / password123<br>\n\
+            Admin Access: ADM001 / admin2024\n\
+        </p>\n\
+    </div>\n\
+</body>\n\
+</html>\n\
+"""\n\
+\n\
+# Vulnerable dashboard template\n\
+DASHBOARD_TEMPLATE = """\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>HR Dashboard - Acme Financial</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 20px; }\n\
+        .header { background: #667eea; color: white; padding: 20px; margin: -20px -20px 20px -20px; }\n\
+        .container { max-width: 1200px; margin: 0 auto; }\n\
+        .card { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }\n\
+        table { width: 100%; border-collapse: collapse; }\n\
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n\
+        th { background: #f8f9fa; }\n\
+        .sensitive { background: #ffe6e6; }\n\
+        .search-box { width: 300px; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="header">\n\
+        <h1>👥 HR Management Dashboard</h1>\n\
+        <p>Employee: {{ session.employee_id }} | Role: {{ session.role }}</p>\n\
+        <a href="/logout" style="color: white;">Logout</a>\n\
+    </div>\n\
+    \n\
+    <div class="container">\n\
+        <div class="card">\n\
+            <h2>Employee Search</h2>\n\
+            <form method="GET">\n\
+                <input type="text" name="search" class="search-box" placeholder="Search by name, ID, or department..." value="{{ request.args.get("search", "") }}">\n\
+                <button type="submit">Search</button>\n\
+            </form>\n\
+        </div>\n\
+        \n\
+        <div class="card">\n\
+            <h2>Employee Directory</h2>\n\
+            <table>\n\
+                <tr>\n\
+                    <th>Employee ID</th>\n\
+                    <th>Name</th>\n\
+                    <th>Department</th>\n\
+                    <th>Title</th>\n\
+                    <th>Salary</th>\n\
+                    <th class="sensitive">SSN</th>\n\
+                    <th>Security Clearance</th>\n\
+                </tr>\n\
+                {% for employee in employees %}\n\
+                <tr>\n\
+                    <td>{{ employee[0] }}</td>\n\
+                    <td>{{ employee[1] }} {{ employee[2] }}</td>\n\
+                    <td>{{ employee[3] }}</td>\n\
+                    <td>{{ employee[4] }}</td>\n\
+                    <td>${{ "{:,}".format(employee[5]) }}</td>\n\
+                    <td class="sensitive">{{ employee[8] }}</td>\n\
+                    <td>{{ employee[11] }}</td>\n\
+                </tr>\n\
+                {% endfor %}\n\
+            </table>\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>\n\
+"""\n\
+\n\
+@app.route("/", methods=["GET", "POST"])\n\
+def login():\n\
+    if request.method == "POST":\n\
+        employee_id = request.form["employee_id"]\n\
+        password = request.form["password"]\n\
+        \n\
+        # Intentionally vulnerable SQL injection\n\
+        conn = get_db_connection()\n\
+        cursor = conn.cursor()\n\
+        \n\
+        # VULNERABLE: Direct SQL injection\n\
+        query = f"SELECT Employee_ID, First_Name, Last_Name, Department, Title FROM hr_employees WHERE Employee_ID = \"{employee_id}\" AND Password = \"{password}\""\n\
+        \n\
+        try:\n\
+            cursor.execute(query)\n\
+            result = cursor.fetchone()\n\
+            \n\
+            if result:\n\
+                session["employee_id"] = result[0]\n\
+                session["name"] = f"{result[1]} {result[2]}"\n\
+                session["department"] = result[3]\n\
+                session["role"] = result[4]\n\
+                return redirect("/dashboard")\n\
+            else:\n\
+                return render_template_string(LOGIN_TEMPLATE, error="Invalid credentials", query=query)\n\
+        except Exception as e:\n\
+            return render_template_string(LOGIN_TEMPLATE, error=f"Database error: {str(e)}", query=query)\n\
+        finally:\n\
+            cursor.close()\n\
+            conn.close()\n\
+    \n\
+    return render_template_string(LOGIN_TEMPLATE)\n\
+\n\
+@app.route("/dashboard")\n\
+def dashboard():\n\
+    if "employee_id" not in session:\n\
+        return redirect("/")\n\
+    \n\
+    conn = get_db_connection()\n\
+    cursor = conn.cursor()\n\
+    \n\
+    search = request.args.get("search", "")\n\
+    if search:\n\
+        # VULNERABLE: SQL injection in search\n\
+        query = f"SELECT * FROM hr_employees WHERE First_Name LIKE \"%{search}%\" OR Last_Name LIKE \"%{search}%\" OR Department LIKE \"%{search}%\""\n\
+    else:\n\
+        query = "SELECT * FROM hr_employees LIMIT 20"\n\
+    \n\
+    cursor.execute(query)\n\
+    employees = cursor.fetchall()\n\
+    \n\
+    cursor.close()\n\
+    conn.close()\n\
+    \n\
+    return render_template_string(DASHBOARD_TEMPLATE, employees=employees)\n\
+\n\
+@app.route("/api/employee/<employee_id>")\n\
+def get_employee_api(employee_id):\n\
+    # Vulnerable API endpoint\n\
+    conn = get_db_connection()\n\
+    cursor = conn.cursor(dictionary=True)\n\
+    \n\
+    # VULNERABLE: Direct parameter injection\n\
+    query = f"SELECT * FROM hr_employees WHERE Employee_ID = \"{employee_id}\"\n\
+    \n\
+    cursor.execute(query)\n\
+    employee = cursor.fetchone()\n\
+    \n\
+    cursor.close()\n\
+    conn.close()\n\
+    \n\
+    if employee:\n\
+        return jsonify(employee)\n\
+    else:\n\
+        return jsonify({"error": "Employee not found"}), 404\n\
+\n\
+@app.route("/logout")\n\
+def logout():\n\
+    session.clear()\n\
+    return redirect("/")\n\
+\n\
+if __name__ == "__main__":\n\
+    app.run(host="0.0.0.0", port=5000, debug=True)' > /app/hr_portal.py
+
+# Create HR employee table setup script
+RUN echo 'import mysql.connector\n\
+import time\n\
+\n\
+def setup_hr_table():\n\
+    # Wait for database to be ready\n\
+    time.sleep(30)\n\
+    \n\
+    try:\n\
+        conn = mysql.connector.connect(\n\
+            host="enterprise-financial-db",\n\
+            user="root",\n\
+            password="Acm3F1n@nc3!2024",\n\
+            database="financial_records"\n\
+        )\n\
+        \n\
+        cursor = conn.cursor()\n\
+        \n\
+        # Create HR employees table\n\
+        cursor.execute("""\n\
+        CREATE TABLE IF NOT EXISTS hr_employees (\n\
+            Employee_ID VARCHAR(10) PRIMARY KEY,\n\
+            First_Name VARCHAR(50),\n\
+            Last_Name VARCHAR(50),\n\
+            Department VARCHAR(50),\n\
+            Title VARCHAR(100),\n\
+            Base_Salary DECIMAL(10,2),\n\
+            Bonus_2024 DECIMAL(10,2),\n\
+            Stock_Options DECIMAL(10,2),\n\
+            SSN VARCHAR(11),\n\
+            Start_Date DATE,\n\
+            Manager VARCHAR(10),\n\
+            Security_Clearance VARCHAR(20),\n\
+            Performance_Rating VARCHAR(20),\n\
+            Password VARCHAR(50) DEFAULT "password123"\n\
+        )\n\
+        """)\n\
+        \n\
+        # Insert sample HR data\n\
+        hr_data = [\n\
+            ("EMP001", "Alice", "Johnson", "Customer Service", "Senior Rep", 65000, 8500, 0, "123-45-6789", "2019-03-15", "MGR101", "Standard", "Exceeds", "password123"),\n\
+            ("EMP002", "Bob", "Smith", "Loan Processing", "Loan Officer", 85000, 12750, 5000, "234-56-7890", "2018-07-22", "MGR102", "Standard", "Meets", "password123"),\n\
+            ("ADM001", "David", "Admin", "IT Security", "Security Admin", 135000, 20000, 12000, "678-90-1234", "2016-05-12", "CTO001", "Top_Secret", "Outstanding", "admin2024"),\n\
+            ("EMP004", "Eve", "Suspicious", "Temp Services", "Data Entry", 45000, 0, 0, "456-78-9012", "2024-06-01", "MGR101", "None", "Below", "temp123"),\n\
+            ("EMP005", "Frank", "Insider", "Finance", "Analyst", 95000, 15000, 8000, "567-89-0123", "2020-11-08", "CFO001", "Standard", "Meets", "insider2024")\n\
+        ]\n\
+        \n\
+        cursor.executemany("""\n\
+        INSERT IGNORE INTO hr_employees \n\
+        (Employee_ID, First_Name, Last_Name, Department, Title, Base_Salary, Bonus_2024, Stock_Options, SSN, Start_Date, Manager, Security_Clearance, Performance_Rating, Password)\n\
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)\n\
+        """, hr_data)\n\
+        \n\
+        conn.commit()\n\
+        print("HR table setup completed successfully")\n\
+        \n\
+    except Exception as e:\n\
+        print(f"Error setting up HR table: {e}")\n\
+    finally:\n\
+        if cursor:\n\
+            cursor.close()\n\
+        if conn:\n\
+            conn.close()\n\
+\n\
+if __name__ == "__main__":\n\
+    setup_hr_table()' > /app/setup_hr_db.py
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Setup HR database table\n\
+python3 /app/setup_hr_db.py &\n\
+\n\
+# Start Flask application\n\
+python3 /app/hr_portal.py' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose Flask port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+    CMD curl -f http://localhost:5000/ || exit 1
+
+# Start the application
+CMD ["/app/start.sh"]

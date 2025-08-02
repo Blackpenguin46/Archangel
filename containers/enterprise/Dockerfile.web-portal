@@ -1,0 +1,221 @@
+# Enterprise Web Portal - Vulnerable Web Application
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV APACHE_DOCUMENT_ROOT=/var/www/html
+ENV COMPANY_NAME="Acme Financial Corp"
+ENV MCP_ENDPOINT=http://enterprise-defensive-mcp:8080
+
+# Install Apache, PHP and dependencies
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    php8.1 \
+    php8.1-mysql \
+    php8.1-curl \
+    php8.1-json \
+    php8.1-mbstring \
+    php8.1-xml \
+    libapache2-mod-php8.1 \
+    mysql-client \
+    curl \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache modules
+RUN a2enmod php8.1 rewrite ssl
+
+# Configure Apache with intentional vulnerabilities for testing
+COPY containers/enterprise/configs/apache-vulnerable.conf /etc/apache2/sites-available/000-default.conf
+COPY containers/enterprise/configs/apache-security.conf /etc/apache2/conf-available/security.conf
+
+# Create web application with intentional vulnerabilities
+COPY containers/enterprise/web-app/ /var/www/html/
+
+# Create vulnerable PHP application
+RUN echo '<?php\n\
+// Vulnerable Login Page for Penetration Testing\n\
+$servername = "enterprise-financial-db";\n\
+$username = "finance_app";\n\
+$password = "F1n@pp2024!";\n\
+$dbname = "financial_records";\n\
+\n\
+// Intentionally vulnerable to SQL injection\n\
+if ($_POST["username"] && $_POST["password"]) {\n\
+    $conn = new mysqli($servername, $username, $password, $dbname);\n\
+    \n\
+    // VULNERABLE: Direct SQL injection\n\
+    $sql = "SELECT * FROM customers WHERE email = \'" . $_POST["username"] . "\' AND security_answer = \'" . $_POST["password"] . "\'";\n\
+    $result = $conn->query($sql);\n\
+    \n\
+    if ($result->num_rows > 0) {\n\
+        session_start();\n\
+        $_SESSION["loggedin"] = true;\n\
+        $_SESSION["username"] = $_POST["username"];\n\
+        header("Location: dashboard.php");\n\
+    } else {\n\
+        $error = "Invalid credentials";\n\
+    }\n\
+}\n\
+?>\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title><?php echo $GLOBALS["COMPANY_NAME"]; ?> - Customer Portal</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: #f0f0f0; margin: 0; padding: 20px; }\n\
+        .container { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }\n\
+        .logo { text-align: center; color: #2c5aa0; margin-bottom: 30px; }\n\
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }\n\
+        input[type="submit"] { width: 100%; background-color: #2c5aa0; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 4px; cursor: pointer; }\n\
+        .error { color: red; margin: 10px 0; }\n\
+        .debug { background: #f8f8f8; padding: 10px; margin: 10px 0; border-left: 4px solid #2c5aa0; font-family: monospace; font-size: 12px; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <div class="logo">\n\
+            <h1>🏦 Acme Financial</h1>\n\
+            <p>Customer Portal Login</p>\n\
+        </div>\n\
+        \n\
+        <form method="POST">\n\
+            <input type="text" name="username" placeholder="Email Address" required>\n\
+            <input type="password" name="password" placeholder="Security Answer" required>\n\
+            <input type="submit" value="Login">\n\
+        </form>\n\
+        \n\
+        <?php if (isset($error)) echo "<div class=\"error\">$error</div>"; ?>\n\
+        \n\
+        <!-- Debug info for penetration testing -->\n\
+        <div class="debug">\n\
+            <strong>Debug Info:</strong><br>\n\
+            Server: <?php echo $_SERVER["SERVER_NAME"]; ?><br>\n\
+            PHP Version: <?php echo phpversion(); ?><br>\n\
+            Database: <?php echo $servername; ?><br>\n\
+            <?php if (isset($sql)) echo "Last Query: " . htmlspecialchars($sql); ?>\n\
+        </div>\n\
+        \n\
+        <p style="font-size: 12px; color: #666; text-align: center;">\n\
+            © 2024 Acme Financial Corp. All rights reserved.<br>\n\
+            <a href="admin.php">Admin Panel</a> | \n\
+            <a href="backup/">Backup Files</a> | \n\
+            <a href="config.php">Configuration</a>\n\
+        </p>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/html/index.php
+
+# Create vulnerable admin panel
+RUN echo '<?php\n\
+// Vulnerable Admin Panel - No Authentication Required!\n\
+$servername = "enterprise-financial-db";\n\
+$username = "legacy_app";\n\
+$password = "password123";\n\
+$dbname = "financial_records";\n\
+\n\
+$conn = new mysqli($servername, $username, $password, $dbname);\n\
+\n\
+// Execute any SQL query (EXTREMELY VULNERABLE)\n\
+if ($_POST["query"]) {\n\
+    $sql = $_POST["query"];\n\
+    $result = $conn->query($sql);\n\
+}\n\
+?>\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Admin Panel - Acme Financial</title>\n\
+    <style>\n\
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }\n\
+        .container { max-width: 800px; margin: 0 auto; }\n\
+        textarea { width: 100%; height: 200px; background: #111; color: #0f0; border: 1px solid #333; padding: 10px; }\n\
+        input[type="submit"] { background: #333; color: #0f0; border: 1px solid #555; padding: 10px 20px; cursor: pointer; }\n\
+        .result { background: #111; border: 1px solid #333; padding: 10px; margin: 10px 0; overflow-x: auto; }\n\
+        table { width: 100%; border-collapse: collapse; }\n\
+        th, td { border: 1px solid #333; padding: 8px; text-align: left; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <h1>🚨 ADMIN PANEL - UNRESTRICTED ACCESS</h1>\n\
+        <p>Direct database access - No authentication required!</p>\n\
+        \n\
+        <form method="POST">\n\
+            <textarea name="query" placeholder="Enter SQL query..."><?php echo isset($_POST["query"]) ? htmlspecialchars($_POST["query"]) : "SELECT * FROM customers LIMIT 5;"; ?></textarea><br>\n\
+            <input type="submit" value="Execute Query">\n\
+        </form>\n\
+        \n\
+        <?php if (isset($result)): ?>\n\
+        <div class="result">\n\
+            <h3>Query Results:</h3>\n\
+            <?php\n\
+            if ($result === TRUE) {\n\
+                echo "Query executed successfully.";\n\
+            } elseif ($result === FALSE) {\n\
+                echo "Error: " . $conn->error;\n\
+            } else {\n\
+                echo "<table><tr>";\n\
+                $fields = $result->fetch_fields();\n\
+                foreach ($fields as $field) {\n\
+                    echo "<th>" . $field->name . "</th>";\n\
+                }\n\
+                echo "</tr>";\n\
+                \n\
+                while ($row = $result->fetch_assoc()) {\n\
+                    echo "<tr>";\n\
+                    foreach ($row as $value) {\n\
+                        echo "<td>" . htmlspecialchars($value) . "</td>";\n\
+                    }\n\
+                    echo "</tr>";\n\
+                }\n\
+                echo "</table>";\n\
+            }\n\
+            ?>\n\
+        </div>\n\
+        <?php endif; ?>\n\
+        \n\
+        <div class="result">\n\
+            <h3>Quick Queries:</h3>\n\
+            <a href="?query=SELECT * FROM customers WHERE balance > 100000">High-Value Customers</a><br>\n\
+            <a href="?query=SELECT * FROM wire_transfers WHERE amount > 1000000">Large Wire Transfers</a><br>\n\
+            <a href="?query=SELECT * FROM access_logs ORDER BY access_time DESC LIMIT 10">Recent Access Logs</a><br>\n\
+            <a href="?query=SHOW TABLES">Show All Tables</a><br>\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/html/admin.php
+
+# Create backup directory with sensitive files
+RUN mkdir -p /var/www/html/backup && \
+    echo "# Database Backup Configuration\n\
+DB_HOST=enterprise-financial-db\n\
+DB_USER=root\n\
+DB_PASS=Acm3F1n@nc3!2024\n\
+DB_NAME=financial_records\n\
+BACKUP_KEY=AcmeBackup2024SecretKey\n\
+FTP_SERVER=ftp.acmefinancial.local\n\
+FTP_USER=backup_user\n\
+FTP_PASS=B@ckupP@ss2024!" > /var/www/html/backup/config.txt && \
+    chmod 644 /var/www/html/backup/config.txt
+
+# Set proper permissions (intentionally permissive for penetration testing)
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html && \
+    chmod 644 /var/www/html/backup/config.txt
+
+# Enable vulnerable configurations
+RUN echo "ServerTokens Full\n\
+ServerSignature On\n\
+TraceEnable On" >> /etc/apache2/apache2.conf
+
+# Expose HTTP and HTTPS ports
+EXPOSE 80 443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
+# Start Apache
+CMD ["apache2ctl", "-D", "FOREGROUND"]

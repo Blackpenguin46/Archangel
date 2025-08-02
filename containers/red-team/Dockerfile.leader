@@ -1,0 +1,185 @@
+# Red Team Autonomous Kali Linux Container
+# Full Kali Linux penetration testing environment controlled by AI agents
+FROM kalilinux/kali-rolling:latest
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HF_HOME=/root/.cache/huggingface
+ENV PYTHONPATH=/app
+ENV KALI_TOOLS_DIR=/usr/share/kali-menu/applications
+
+# Update package lists and install Kali metapackages
+RUN apt-get update && apt-get upgrade -y
+
+# Install core Kali Linux toolsets that AI agents will control
+RUN apt-get install -y \
+    # Essential system tools
+    kali-defaults \
+    kali-menu \
+    # Complete penetration testing suite
+    kali-tools-top10 \
+    kali-tools-information-gathering \
+    kali-tools-vulnerability \
+    kali-tools-web \
+    kali-tools-database \
+    kali-tools-passwords \
+    kali-tools-wireless \
+    kali-tools-reverse-engineering \
+    kali-tools-exploitation \
+    kali-tools-social-engineering \
+    kali-tools-sniffing-spoofing \
+    kali-tools-post-exploitation \
+    kali-tools-forensics \
+    kali-tools-reporting \
+    # Additional essential tools
+    metasploit-framework \
+    armitage \
+    beef-xss \
+    burpsuite \
+    dirb \
+    dirbuster \
+    gobuster \
+    hydra \
+    john \
+    hashcat \
+    aircrack-ng \
+    wireshark \
+    tcpdump \
+    nmap \
+    masscan \
+    nikto \
+    sqlmap \
+    wpscan \
+    whatweb \
+    theharvester \
+    recon-ng \
+    maltego \
+    spiderfoot \
+    amass \
+    subfinder \
+    assetfinder \
+    httprobe \
+    waybackurls \
+    ffuf \
+    wfuzz \
+    crackmapexec \
+    impacket-scripts \
+    bloodhound \
+    neo4j \
+    responder \
+    empire \
+    powersploit \
+    mimikatz \
+    shellter \
+    veil-evasion \
+    social-engineer-toolkit \
+    king-phisher \
+    gophish \
+    # Development and scripting tools
+    python3 \
+    python3-pip \
+    python3-venv \
+    ruby \
+    perl \
+    php \
+    nodejs \
+    npm \
+    git \
+    curl \
+    wget \
+    vim \
+    nano \
+    tmux \
+    screen \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for AI integration
+RUN pip3 install --no-cache-dir \
+    torch \
+    transformers \
+    datasets \
+    huggingface-hub \
+    accelerate \
+    peft \
+    torch-audio \
+    torchaudio \
+    scipy \
+    scikit-learn \
+    pandas \
+    numpy \
+    matplotlib \
+    seaborn \
+    jupyter \
+    ipykernel \
+    asyncio \
+    websockets \
+    requests \
+    beautifulsoup4 \
+    selenium \
+    scapy \
+    netaddr \
+    dnspython \
+    paramiko \
+    pycryptodome \
+    cryptography \
+    python-nmap \
+    python-masscan \
+    shodan \
+    censys \
+    virustotal-api \
+    yara-python \
+    pefile \
+    ssdeep \
+    magic \
+    oletools \
+    pyopenssl \
+    jwt \
+    httpx \
+    aiohttp
+
+# Create application directory
+WORKDIR /app
+
+# Copy application files
+COPY . /app/
+
+# Create specialized directories
+RUN mkdir -p /data/reconnaissance \
+             /data/exploitation \
+             /data/persistence \
+             /data/social_engineering \
+             /data/logs \
+             /data/reports \
+             /data/models \
+             /data/payloads \
+             /data/tools
+
+# Install custom red team tools
+COPY containers/red-team/tools/ /opt/red-team-tools/
+RUN chmod +x /opt/red-team-tools/*.sh
+
+# Configure Metasploit
+RUN msfdb init
+
+# Set up Neo4j for BloodHound
+RUN systemctl enable neo4j || true
+
+# Create red team AI agent script
+COPY containers/red-team/red_team_ai_agent.py /app/
+RUN chmod +x /app/red_team_ai_agent.py
+
+# Set up environment
+ENV TEAM_ROLE=red_leader
+ENV AI_MODEL_PATH=/data/models/red_team_leader
+ENV TOOLS_PATH=/opt/red-team-tools
+ENV DATA_PATH=/data
+
+# Expose ports
+EXPOSE 4444 4445 8080 8443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import requests; requests.get('http://localhost:8080/health')" || exit 1
+
+# Start red team leader service
+CMD ["python3", "red_team_ai_agent.py"]

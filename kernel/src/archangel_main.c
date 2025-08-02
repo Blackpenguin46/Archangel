@@ -68,6 +68,22 @@ extern int archangel_init_communication(void);
 extern void archangel_cleanup_communication(void);
 extern int archangel_syscall_init(void);
 extern void archangel_syscall_cleanup(void);
+extern int archangel_memory_init(void);
+extern void archangel_memory_cleanup(void);
+extern int archangel_network_init(void);
+extern void archangel_network_cleanup(void);
+
+/* Enhanced statistics functions */
+extern void archangel_memory_get_stats(u64 *total_allocs, u64 *suspicious_activities, 
+                                       u64 *blocked_allocs, u32 *tracked_processes);
+extern void archangel_network_get_stats(u64 *total_packets, u64 *blocked_packets, 
+                                        u64 *suspicious_packets, u64 *ddos_packets,
+                                        u64 *malicious_payloads, u32 *tracked_connections,
+                                        u32 *tracked_hosts);
+extern void archangel_get_enhanced_comm_stats(u64 *sent, u64 *received, u64 *overruns, 
+                                              u64 *zero_copy_ops, u64 *fast_path_decisions,
+                                              u64 *avg_response_ns, u64 *min_response_ns, 
+                                              u64 *max_response_ns, u64 *cache_hits, u64 *cache_misses);
 
 /*
  * Core decision making function
@@ -328,6 +344,20 @@ static int __init archangel_init(void)
         /* Continue without syscall interception */
     }
     
+    /* Initialize memory protection system */
+    ret = archangel_memory_init();
+    if (ret) {
+        archangel_warn("Failed to initialize memory protection: %d", ret);
+        /* Continue without memory protection */
+    }
+    
+    /* Initialize network analysis system */
+    ret = archangel_network_init();
+    if (ret) {
+        archangel_warn("Failed to initialize network analysis: %d", ret);
+        /* Continue without network analysis */
+    }
+    
     /* Allocate shared memory */
     archangel_state.shared_mem_size = ARCHANGEL_SHARED_MEM_SIZE;
     archangel_state.shared_mem = vmalloc(archangel_state.shared_mem_size);
@@ -374,7 +404,9 @@ static void __exit archangel_exit(void)
     mutex_lock(&archangel_state.lock);
     archangel_state.initialized = false;
     
-    /* Cleanup syscall interception */
+    /* Cleanup all subsystems */
+    archangel_network_cleanup();
+    archangel_memory_cleanup();
     archangel_syscall_cleanup();
     
     /* Cleanup shared memory */
@@ -421,8 +453,10 @@ static int archangel_proc_stats_show(struct seq_file *m, void *v)
 {
     struct archangel_stats stats;
     
+    /* Core module statistics */
     archangel_get_stats(&stats);
     
+    seq_printf(m, "=== Core Module Statistics ===\n");
     seq_printf(m, "Total Decisions: %llu\n", stats.total_decisions);
     seq_printf(m, "Allow: %llu\n", stats.allow_decisions);
     seq_printf(m, "Deny: %llu\n", stats.deny_decisions);
@@ -436,6 +470,57 @@ static int archangel_proc_stats_show(struct seq_file *m, void *v)
     seq_printf(m, "Avg Decision Time: %llu ns\n", stats.avg_decision_time_ns);
     seq_printf(m, "Max Decision Time: %llu ns\n", stats.max_decision_time_ns);
     seq_printf(m, "Uptime: %llu seconds\n", stats.uptime_seconds);
+    
+    /* Enhanced communication statistics */
+    u64 sent, received, overruns, zero_copy_ops, fast_path_decisions;
+    u64 avg_response_ns, min_response_ns, max_response_ns, cache_hits, cache_misses;
+    
+    archangel_get_enhanced_comm_stats(&sent, &received, &overruns, &zero_copy_ops,
+                                     &fast_path_decisions, &avg_response_ns, 
+                                     &min_response_ns, &max_response_ns,
+                                     &cache_hits, &cache_misses);
+    
+    seq_printf(m, "\n=== Enhanced Communication Statistics ===\n");
+    seq_printf(m, "Messages Sent: %llu\n", sent);
+    seq_printf(m, "Messages Received: %llu\n", received);
+    seq_printf(m, "Ring Buffer Overruns: %llu\n", overruns);
+    seq_printf(m, "Zero-Copy Operations: %llu\n", zero_copy_ops);
+    seq_printf(m, "Fast Path Decisions: %llu\n", fast_path_decisions);
+    seq_printf(m, "Avg Response Time: %llu ns\n", avg_response_ns);
+    seq_printf(m, "Min Response Time: %llu ns\n", min_response_ns);
+    seq_printf(m, "Max Response Time: %llu ns\n", max_response_ns);
+    seq_printf(m, "Decision Cache Hits: %llu\n", cache_hits);
+    seq_printf(m, "Decision Cache Misses: %llu\n", cache_misses);
+    
+    /* Memory protection statistics */
+    u64 total_allocs, suspicious_activities, blocked_allocs;
+    u32 tracked_processes;
+    
+    archangel_memory_get_stats(&total_allocs, &suspicious_activities, 
+                              &blocked_allocs, &tracked_processes);
+    
+    seq_printf(m, "\n=== Memory Protection Statistics ===\n");
+    seq_printf(m, "Total Allocations: %llu\n", total_allocs);
+    seq_printf(m, "Suspicious Activities: %llu\n", suspicious_activities);
+    seq_printf(m, "Blocked Allocations: %llu\n", blocked_allocs);
+    seq_printf(m, "Tracked Processes: %u\n", tracked_processes);
+    
+    /* Network analysis statistics */
+    u64 total_packets, blocked_packets, suspicious_packets, ddos_packets, malicious_payloads;
+    u32 tracked_connections, tracked_hosts;
+    
+    archangel_network_get_stats(&total_packets, &blocked_packets, &suspicious_packets,
+                               &ddos_packets, &malicious_payloads, &tracked_connections,
+                               &tracked_hosts);
+    
+    seq_printf(m, "\n=== Network Analysis Statistics ===\n");
+    seq_printf(m, "Total Packets: %llu\n", total_packets);
+    seq_printf(m, "Blocked Packets: %llu\n", blocked_packets);
+    seq_printf(m, "Suspicious Packets: %llu\n", suspicious_packets);
+    seq_printf(m, "DDoS Packets: %llu\n", ddos_packets);
+    seq_printf(m, "Malicious Payloads: %llu\n", malicious_payloads);
+    seq_printf(m, "Tracked Connections: %u\n", tracked_connections);
+    seq_printf(m, "Tracked Hosts: %u\n", tracked_hosts);
     
     return 0;
 }

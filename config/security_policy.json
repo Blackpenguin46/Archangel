@@ -1,0 +1,17 @@
+{
+  "authorization": {
+    "require_explicit_approval": true,
+    "approved_targets": ["127.0.0.1", "192.168.1.0/24"],
+    "forbidden_actions": ["destructive_operations", "external_attacks"]
+  },
+  "logging": {
+    "log_all_operations": true,
+    "log_level": "INFO",
+    "retention_days": 90
+  },
+  "containment": {
+    "isolate_red_team": true,
+    "network_restrictions": true,
+    "resource_limits": true
+  }
+}

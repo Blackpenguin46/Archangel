@@ -1,0 +1,337 @@
+# Enterprise Domain Controller - Samba AD with LDAP
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DOMAIN_NAME=ACMEFINANCIAL
+ENV REALM=ACMEFINANCIAL.LOCAL
+ENV ADMIN_PASS=Acm3Dom@in2024!
+ENV DNS_FORWARDER=8.8.8.8
+
+# Install Samba AD DC and dependencies
+RUN apt-get update && apt-get install -y \
+    samba \
+    samba-dsdb-modules \
+    samba-vfs-modules \
+    winbind \
+    libnss-winbind \
+    libpam-winbind \
+    krb5-config \
+    krb5-user \
+    dnsutils \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-ldap \
+    curl \
+    wget \
+    vim \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Kerberos
+RUN echo "[libdefaults]\n\
+    default_realm = $REALM\n\
+    dns_lookup_realm = false\n\
+    dns_lookup_kdc = true\n\
+    rdns = false\n\
+    ticket_lifetime = 24h\n\
+    forwardable = yes\n\
+    allow_weak_crypto = true\n\
+\n\
+[realms]\n\
+    $REALM = {\n\
+        kdc = dc.acmefinancial.local\n\
+        admin_server = dc.acmefinancial.local\n\
+        default_domain = acmefinancial.local\n\
+    }\n\
+\n\
+[domain_realm]\n\
+    .acmefinancial.local = $REALM\n\
+    acmefinancial.local = $REALM" > /etc/krb5.conf
+
+# Remove default Samba configuration
+RUN rm -f /etc/samba/smb.conf
+
+# Create domain provisioning script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Stop services\n\
+service smbd stop 2>/dev/null || true\n\
+service nmbd stop 2>/dev/null || true\n\
+service winbind stop 2>/dev/null || true\n\
+\n\
+# Provision domain (only if not already done)\n\
+if [ ! -f /var/lib/samba/private/sam.ldb ]; then\n\
+    echo "Provisioning Samba AD Domain..."\n\
+    samba-tool domain provision \\\n\
+        --use-rfc2307 \\\n\
+        --realm=$REALM \\\n\
+        --domain=$DOMAIN_NAME \\\n\
+        --adminpass=$ADMIN_PASS \\\n\
+        --server-role=dc \\\n\
+        --dns-backend=SAMBA_INTERNAL \\\n\
+        --option="interfaces=lo eth0" \\\n\
+        --option="bind interfaces only=yes"\n\
+    \n\
+    echo "Domain provisioned successfully"\n\
+else\n\
+    echo "Domain already provisioned, skipping..."\n\
+fi\n\
+\n\
+# Configure DNS\n\
+echo "nameserver 127.0.0.1" > /etc/resolv.conf\n\
+echo "search acmefinancial.local" >> /etc/resolv.conf\n\
+\n\
+# Start Samba AD DC\n\
+echo "Starting Samba AD DC..."\n\
+samba -D\n\
+\n\
+# Wait for services to start\n\
+sleep 10\n\
+\n\
+# Create organizational units and users\n\
+if [ ! -f /var/lib/samba/.users_created ]; then\n\
+    echo "Creating organizational structure..."\n\
+    \n\
+    # Create OUs\n\
+    samba-tool ou create "OU=Departments,DC=acmefinancial,DC=local" || true\n\
+    samba-tool ou create "OU=Executive,OU=Departments,DC=acmefinancial,DC=local" || true\n\
+    samba-tool ou create "OU=Finance,OU=Departments,DC=acmefinancial,DC=local" || true\n\
+    samba-tool ou create "OU=HR,OU=Departments,DC=acmefinancial,DC=local" || true\n\
+    samba-tool ou create "OU=IT,OU=Departments,DC=acmefinancial,DC=local" || true\n\
+    samba-tool ou create "OU=ServiceAccounts,DC=acmefinancial,DC=local" || true\n\
+    \n\
+    # Create groups\n\
+    samba-tool group add "Domain Executives" --description="Executive Management" || true\n\
+    samba-tool group add "Finance Team" --description="Finance Department" || true\n\
+    samba-tool group add "HR Team" --description="Human Resources" || true\n\
+    samba-tool group add "IT Admins" --description="IT Administrators" || true\n\
+    samba-tool group add "VIP Users" --description="High-value customers and executives" || true\n\
+    \n\
+    # Create executive users with weak passwords\n\
+    samba-tool user create rbillionaire "CEO_Pass_2024!" --given-name="Richard" --surname="Billionaire" --job-title="CEO" --department="Executive" --description="Chief Executive Officer" || true\n\
+    samba-tool user create vexecutive "Exec_Pass123" --given-name="Victoria" --surname="Executive" --job-title="President" --department="Executive" --description="President & COO" || true\n\
+    samba-tool user create sgoldman "Goldman_CFO24" --given-name="Sarah" --surname="Goldman" --job-title="CFO" --department="Finance" --description="Chief Financial Officer" || true\n\
+    samba-tool user create msterling "Sterling_Risk!" --given-name="Michael" --surname="Sterling" --job-title="CRO" --department="Finance" --description="Chief Risk Officer" || true\n\
+    samba-tool user create rsecurity "Security_CISO24" --given-name="Robert" --surname="Security" --job-title="CISO" --department="IT" --description="Chief Information Security Officer" || true\n\
+    \n\
+    # Create department users\n\
+    samba-tool user create ajohnson "Johnson123" --given-name="Alice" --surname="Johnson" --job-title="Senior Rep" --department="Customer Service" || true\n\
+    samba-tool user create bsmith "Smith_Loan24" --given-name="Bob" --surname="Smith" --job-title="Loan Officer" --department="Loan Processing" || true\n\
+    samba-tool user create dadmin "Admin_Pass24!" --given-name="David" --surname="Admin" --job-title="Security Admin" --department="IT" --description="IT Security Administrator" || true\n\
+    \n\
+    # Create suspicious/test accounts\n\
+    samba-tool user create esuspicious "TempPass123" --given-name="Eve" --surname="Suspicious" --job-title="Data Entry" --department="Temp Services" --description="Temporary Employee" || true\n\
+    samba-tool user create finsider "Insider_2024" --given-name="Frank" --surname="Insider" --job-title="Analyst" --department="Finance" --description="Finance Analyst" || true\n\
+    \n\
+    # Create service accounts with weak passwords\n\
+    samba-tool user create svc_backup "Backup_Svc123" --description="Backup Service Account" || true\n\
+    samba-tool user create svc_sql "SQL_Service24" --description="SQL Server Service Account" || true\n\
+    samba-tool user create svc_web "Web_App_Pass!" --description="Web Application Service Account" || true\n\
+    \n\
+    # Add users to groups\n\
+    samba-tool group addmembers "Domain Executives" rbillionaire,vexecutive,sgoldman,msterling,rsecurity || true\n\
+    samba-tool group addmembers "Finance Team" sgoldman,msterling,finsider,bsmith || true\n\
+    samba-tool group addmembers "HR Team" ajohnson || true\n\
+    samba-tool group addmembers "IT Admins" dadmin,rsecurity || true\n\
+    samba-tool group addmembers "VIP Users" rbillionaire,vexecutive,sgoldman || true\n\
+    samba-tool group addmembers "Domain Admins" dadmin,rsecurity || true\n\
+    \n\
+    touch /var/lib/samba/.users_created\n\
+    echo "Users and groups created successfully"\n\
+fi' > /provision.sh && chmod +x /provision.sh
+
+# Create LDAP browser web interface
+RUN mkdir -p /var/www/ldap-browser
+RUN echo '<?php\n\
+// Simple LDAP Browser - Vulnerable for Penetration Testing\n\
+$ldap_server = "ldap://127.0.0.1:389";\n\
+$ldap_base_dn = "DC=acmefinancial,DC=local";\n\
+$ldap_admin_dn = "CN=Administrator,CN=Users,DC=acmefinancial,DC=local";\n\
+$ldap_admin_pass = "Acm3Dom@in2024!";\n\
+\n\
+$error = "";\n\
+$results = [];\n\
+\n\
+if ($_POST["search"] || $_GET["browse"]) {\n\
+    // Connect to LDAP\n\
+    $ldap_conn = ldap_connect($ldap_server);\n\
+    \n\
+    if ($ldap_conn) {\n\
+        ldap_set_option($ldap_conn, LDAP_OPT_PROTOCOL_VERSION, 3);\n\
+        ldap_set_option($ldap_conn, LDAP_OPT_REFERRALS, 0);\n\
+        \n\
+        // Bind with admin credentials (vulnerable - hardcoded)\n\
+        if (ldap_bind($ldap_conn, $ldap_admin_dn, $ldap_admin_pass)) {\n\
+            $search_filter = $_POST["filter"] ?: "(objectClass=*)";\n\
+            $search_base = $_POST["base_dn"] ?: $ldap_base_dn;\n\
+            \n\
+            // VULNERABLE: Direct filter injection\n\
+            $search_result = ldap_search($ldap_conn, $search_base, $search_filter);\n\
+            \n\
+            if ($search_result) {\n\
+                $entries = ldap_get_entries($ldap_conn, $search_result);\n\
+                $results = $entries;\n\
+            } else {\n\
+                $error = "Search failed: " . ldap_error($ldap_conn);\n\
+            }\n\
+        } else {\n\
+            $error = "LDAP bind failed: " . ldap_error($ldap_conn);\n\
+        }\n\
+        \n\
+        ldap_close($ldap_conn);\n\
+    } else {\n\
+        $error = "Could not connect to LDAP server";\n\
+    }\n\
+}\n\
+?>\n\
+<!DOCTYPE html>\n\
+<html>\n\
+<head>\n\
+    <title>Acme Financial - LDAP Directory Browser</title>\n\
+    <style>\n\
+        body { font-family: Arial; background: #f0f2f5; margin: 0; padding: 20px; }\n\
+        .container { max-width: 1200px; margin: 0 auto; }\n\
+        .header { background: #4267b2; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }\n\
+        .card { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }\n\
+        .form-group { margin: 15px 0; }\n\
+        label { display: block; margin-bottom: 5px; font-weight: bold; }\n\
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }\n\
+        button { background: #4267b2; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }\n\
+        .error { color: red; background: #ffebee; padding: 10px; border-radius: 5px; margin: 10px 0; }\n\
+        .result { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #4267b2; }\n\
+        .attribute { margin: 5px 0; }\n\
+        .dn { font-weight: bold; color: #1565c0; }\n\
+        .sensitive { background: #ffe6e6; }\n\
+        pre { white-space: pre-wrap; font-family: monospace; }\n\
+    </style>\n\
+</head>\n\
+<body>\n\
+    <div class="container">\n\
+        <div class="header">\n\
+            <h1>🗂️ Acme Financial - LDAP Directory Browser</h1>\n\
+            <p>Active Directory and LDAP exploration tool</p>\n\
+        </div>\n\
+        \n\
+        <div class="card">\n\
+            <h2>Directory Search</h2>\n\
+            <form method="POST">\n\
+                <div class="form-group">\n\
+                    <label for="base_dn">Base DN:</label>\n\
+                    <input type="text" name="base_dn" value="<?php echo htmlspecialchars($_POST["base_dn"] ?: $ldap_base_dn); ?>">\n\
+                </div>\n\
+                \n\
+                <div class="form-group">\n\
+                    <label for="filter">LDAP Filter:</label>\n\
+                    <input type="text" name="filter" value="<?php echo htmlspecialchars($_POST["filter"] ?: "(objectClass=user)"); ?>">\n\
+                </div>\n\
+                \n\
+                <button type="submit" name="search">Search Directory</button>\n\
+            </form>\n\
+            \n\
+            <div style="margin-top: 20px;">\n\
+                <strong>Quick Searches:</strong><br>\n\
+                <a href="?browse=1" onclick="document.getElementsByName(\'filter\')[0].value=\'(objectClass=user)\'; document.forms[0].submit(); return false;">All Users</a> |\n\
+                <a href="#" onclick="document.getElementsByName(\'filter\')[0].value=\'(objectClass=group)\'; document.forms[0].submit(); return false;">All Groups</a> |\n\
+                <a href="#" onclick="document.getElementsByName(\'filter\')[0].value=\'(objectClass=organizationalUnit)\'; document.forms[0].submit(); return false;">Organizational Units</a> |\n\
+                <a href="#" onclick="document.getElementsByName(\'filter\')[0].value=\'(memberOf=CN=Domain Executives,CN=Users,DC=acmefinancial,DC=local)\'; document.forms[0].submit(); return false;">Executives</a> |\n\
+                <a href="#" onclick="document.getElementsByName(\'filter\')[0].value=\'(servicePrincipalName=*)\'; document.forms[0].submit(); return false;">Service Accounts</a>\n\
+            </div>\n\
+        </div>\n\
+        \n\
+        <?php if ($error): ?>\n\
+        <div class="error">\n\
+            <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>\n\
+        </div>\n\
+        <?php endif; ?>\n\
+        \n\
+        <?php if (!empty($results)): ?>\n\
+        <div class="card">\n\
+            <h2>Search Results (<?php echo $results["count"]; ?> entries found)</h2>\n\
+            \n\
+            <?php for ($i = 0; $i < $results["count"]; $i++): ?>\n\
+                <?php $entry = $results[$i]; ?>\n\
+                <div class="result <?php echo (isset($entry["cn"][0]) && (strpos($entry["cn"][0], "Admin") !== false || strpos($entry["dn"], "Executive") !== false)) ? "sensitive" : ""; ?>">\n\
+                    <div class="dn">DN: <?php echo htmlspecialchars($entry["dn"]); ?></div>\n\
+                    \n\
+                    <?php foreach ($entry as $attr => $values): ?>\n\
+                        <?php if ($attr !== "count" && $attr !== "dn" && !is_numeric($attr)): ?>\n\
+                            <div class="attribute">\n\
+                                <strong><?php echo htmlspecialchars($attr); ?>:</strong>\n\
+                                <?php if (is_array($values)): ?>\n\
+                                    <?php for ($j = 0; $j < $values["count"]; $j++): ?>\n\
+                                        <span><?php echo htmlspecialchars($values[$j]); ?></span><?php echo ($j < $values["count"] - 1) ? ", " : ""; ?>\n\
+                                    <?php endfor; ?>\n\
+                                <?php else: ?>\n\
+                                    <span><?php echo htmlspecialchars($values); ?></span>\n\
+                                <?php endif; ?>\n\
+                            </div>\n\
+                        <?php endif; ?>\n\
+                    <?php endforeach; ?>\n\
+                </div>\n\
+            <?php endfor; ?>\n\
+        </div>\n\
+        <?php endif; ?>\n\
+        \n\
+        <div class="card">\n\
+            <h2>🔧 Connection Information</h2>\n\
+            <div style="font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px;">\n\
+                <strong>LDAP Server:</strong> <?php echo $ldap_server; ?><br>\n\
+                <strong>Base DN:</strong> <?php echo $ldap_base_dn; ?><br>\n\
+                <strong>Admin DN:</strong> <?php echo $ldap_admin_dn; ?><br>\n\
+                <strong>Status:</strong> Ready for queries\n\
+            </div>\n\
+        </div>\n\
+    </div>\n\
+</body>\n\
+</html>' > /var/www/ldap-browser/index.php
+
+# Configure Apache for LDAP browser
+RUN echo "<VirtualHost *:80>\n\
+    DocumentRoot /var/www/ldap-browser\n\
+    ServerName ldap.acmefinancial.local\n\
+    \n\
+    <Directory /var/www/ldap-browser>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+        DirectoryIndex index.php\n\
+    </Directory>\n\
+    \n\
+    ErrorLog /var/log/apache2/ldap-browser-error.log\n\
+    CustomLog /var/log/apache2/ldap-browser-access.log combined\n\
+</VirtualHost>" > /etc/apache2/sites-available/ldap-browser.conf
+
+RUN a2ensite ldap-browser.conf && a2dissite 000-default.conf && a2enmod php8.1
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "Starting Acme Financial Domain Controller..."\n\
+\n\
+# Provision domain\n\
+/provision.sh\n\
+\n\
+# Start Apache\n\
+service apache2 start\n\
+\n\
+echo "Domain Controller started successfully"\n\
+echo "LDAP Browser available at http://localhost"\n\
+echo "Domain: ACMEFINANCIAL.LOCAL"\n\
+echo "Administrator password: Acm3Dom@in2024!"\n\
+\n\
+# Keep container running and monitor logs\n\
+tail -f /var/log/samba/log.samba /var/log/apache2/access.log 2>/dev/null' > /start.sh && chmod +x /start.sh
+
+# Expose ports (LDAP, LDAPS, Kerberos, DNS, SMB, HTTP)
+EXPOSE 389 636 88 53 139 445 80
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost/ && netstat -ln | grep -q ":389 " && netstat -ln | grep -q ":88 " || exit 1
+
+# Start domain controller
+CMD ["/start.sh"]

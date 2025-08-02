@@ -1,0 +1,45 @@
+[
+  {
+    "advisory_id": "CISA-2024-001",
+    "title": "Critical Vulnerability in Network Infrastructure Devices",
+    "description": "Remote code execution vulnerability affecting multiple network device vendors",
+    "severity": "Critical",
+    "affected_products": [
+      "Router OS v1.2",
+      "Switch OS v2.1",
+      "Firewall OS v3.0"
+    ],
+    "recommendation": "Apply emergency patches immediately, implement network segmentation",
+    "published_date": "2024-01-30",
+    "source": "CISA"
+  },
+  {
+    "advisory_id": "MSRC-2024-002",
+    "title": "Windows Security Update for Remote Code Execution",
+    "description": "Multiple vulnerabilities in Windows components allowing remote code execution",
+    "severity": "Important",
+    "affected_products": [
+      "Windows 10",
+      "Windows 11",
+      "Windows Server 2019",
+      "Windows Server 2022"
+    ],
+    "recommendation": "Install security updates through Windows Update or WSUS",
+    "published_date": "2024-01-25",
+    "source": "Microsoft"
+  },
+  {
+    "advisory_id": "RHSA-2024-003",
+    "title": "Red Hat Security Advisory: Critical kernel security update",
+    "description": "Kernel vulnerabilities allowing privilege escalation and information disclosure",
+    "severity": "Critical",
+    "affected_products": [
+      "RHEL 8",
+      "RHEL 9",
+      "CentOS Stream"
+    ],
+    "recommendation": "Update kernel packages and reboot systems",
+    "published_date": "2024-01-28",
+    "source": "Red Hat"
+  }
+]
