@@ -23,6 +23,8 @@ from adversarial_training_loop import AdversarialTrainingLoop, TrainingEpisode, 
 from dynamic_vulnerability_engine import AdaptiveSecurityOrchestrator
 from guardian_protocol import GuardianProtocol
 from predictive_security_intelligence import PredictiveSecurityIntelligence
+from logging_system import ArchangelLogger, create_system_event
+from autonomous_reasoning_engine import create_autonomous_agent, AutonomousAgent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -68,6 +70,9 @@ class ArchangelOrchestrator:
         self.current_state = None
         self.running = False
         
+        # Initialize logging system
+        self.archangel_logger = ArchangelLogger(self.session_id)
+        
         # Initialize core components
         self.marl_coordinator = MARLCoordinator()
         self.llm_framework = AdversarialLLMFramework()
@@ -75,6 +80,10 @@ class ArchangelOrchestrator:
         self.security_orchestrator = AdaptiveSecurityOrchestrator()
         self.guardian_protocol = GuardianProtocol()
         self.predictive_intelligence = PredictiveSecurityIntelligence()
+        
+        # Autonomous AI agents
+        self.autonomous_red_agents: List[AutonomousAgent] = []
+        self.autonomous_blue_agents: List[AutonomousAgent] = []
         
         # Real-time data streams
         self.event_stream = deque(maxlen=10000)
@@ -89,6 +98,15 @@ class ArchangelOrchestrator:
         self.demo_start_time = None
         self.demo_milestones = []
         
+        # Log initialization
+        self.archangel_logger.log_system_event(create_system_event(
+            event_type='orchestrator_initialization',
+            description=f'Archangel Orchestrator initialized with session {self.session_id}',
+            affected_systems=['orchestrator'],
+            severity='info',
+            metadata={'config': config}
+        ))
+        
         logger.info(f"Archangel Orchestrator initialized - Session: {self.session_id}")
     
     async def initialize_system(self):
@@ -102,6 +120,9 @@ class ArchangelOrchestrator:
         red_config = self.config.get('red_team', {'num_agents': 3})
         blue_config = self.config.get('blue_team', {'num_agents': 3})
         self.marl_coordinator.initialize_agents(red_config, blue_config)
+        
+        # Initialize autonomous reasoning agents
+        await self._initialize_autonomous_agents(red_config, blue_config)
         
         # Initialize Guardian Protocol
         await self.guardian_protocol.initialize()
@@ -126,6 +147,64 @@ class ArchangelOrchestrator:
         )
         
         logger.info("Archangel system initialization complete")
+    
+    async def _initialize_autonomous_agents(self, red_config: Dict[str, Any], blue_config: Dict[str, Any]):
+        """Initialize autonomous reasoning agents"""
+        logger.info("🤖 Initializing autonomous AI agents...")
+        
+        # Red team specializations
+        red_specializations = [
+            "network_scanner", "exploiter", "lateral_movement_specialist", 
+            "data_exfiltrator", "persistence_specialist"
+        ]
+        
+        # Blue team specializations  
+        blue_specializations = [
+            "threat_hunter", "analyst", "incident_responder", 
+            "forensics_expert", "security_architect"
+        ]
+        
+        # Create red team autonomous agents
+        num_red_agents = red_config.get('num_agents', 3)
+        for i in range(num_red_agents):
+            specialization = red_specializations[i % len(red_specializations)]
+            agent = create_autonomous_agent(
+                agent_id=f"red_autonomous_{i}",
+                agent_type="red",
+                specialization=specialization,
+                logger=self.archangel_logger
+            )
+            self.autonomous_red_agents.append(agent)
+            
+            self.archangel_logger.log_system_event(create_system_event(
+                event_type='autonomous_agent_created',
+                description=f'Red team autonomous agent created: {agent.agent_id}',
+                affected_systems=[agent.agent_id],
+                severity='info',
+                metadata={'specialization': specialization, 'agent_type': 'red'}
+            ))
+        
+        # Create blue team autonomous agents
+        num_blue_agents = blue_config.get('num_agents', 3)
+        for i in range(num_blue_agents):
+            specialization = blue_specializations[i % len(blue_specializations)]
+            agent = create_autonomous_agent(
+                agent_id=f"blue_autonomous_{i}",
+                agent_type="blue",
+                specialization=specialization,
+                logger=self.archangel_logger
+            )
+            self.autonomous_blue_agents.append(agent)
+            
+            self.archangel_logger.log_system_event(create_system_event(
+                event_type='autonomous_agent_created',
+                description=f'Blue team autonomous agent created: {agent.agent_id}',
+                affected_systems=[agent.agent_id],
+                severity='info',
+                metadata={'specialization': specialization, 'agent_type': 'blue'}
+            ))
+        
+        logger.info(f"✅ Created {num_red_agents} red team and {num_blue_agents} blue team autonomous agents")
     
     async def _create_initial_network_state(self) -> GameState:
         """Create initial network state for the demonstration"""
@@ -264,13 +343,19 @@ class ArchangelOrchestrator:
                 # Check for milestone events
                 await self._check_demonstration_milestones()
                 
-                # Run MARL simulation step
+                # Run autonomous agent reasoning
+                autonomous_results = await self._run_autonomous_agents_step()
+                
+                # Run MARL simulation step (for comparison and metrics)
                 marl_results = await self.marl_coordinator.run_simulation_step(
                     self.current_state.network_state
                 )
                 
-                # Run adversarial LLM reasoning
-                llm_results = await self._run_adversarial_llm_step(marl_results)
+                # Merge autonomous and MARL results
+                merged_results = self._merge_agent_results(autonomous_results, marl_results)
+                
+                # Run adversarial LLM reasoning (enhanced with autonomous insights)
+                llm_results = await self._run_adversarial_llm_step(merged_results)
                 
                 # Process attacks and generate dynamic responses
                 security_results = await self._process_security_events(
@@ -638,6 +723,223 @@ class ArchangelOrchestrator:
         self.current_state.threat_level = min(0.95, self.current_state.threat_level + 0.3)
         
         logger.info("✅ Emergency activity injection completed")
+    
+    async def _run_autonomous_agents_step(self) -> Dict[str, Any]:
+        """Run autonomous AI agent reasoning step"""
+        
+        autonomous_results = {
+            'red_actions': [],
+            'blue_actions': [],
+            'reasoning_chains': [],
+            'learning_events': [],
+            'autonomous_insights': []
+        }
+        
+        current_state_dict = {
+            'network_state': asdict(self.current_state.network_state),
+            'threat_level': self.current_state.threat_level,
+            'total_asset_value': self.current_state.total_asset_value,
+            'compromised_value': self.current_state.compromised_value,
+            'active_attacks': self.current_state.active_attacks,
+            'active_defenses': self.current_state.active_defenses,
+            'emergent_behaviors': self.current_state.emergent_behaviors[-5:]  # Recent behaviors
+        }
+        
+        # Run red team autonomous agents
+        red_reasoning_tasks = []
+        for agent in self.autonomous_red_agents:
+            # Get recent opponent actions for learning
+            recent_blue_actions = [action.get('action', {}) for action in self.current_state.active_defenses[-3:]]
+            
+            task = agent.autonomous_reasoning(current_state_dict, recent_blue_actions)
+            red_reasoning_tasks.append(task)
+        
+        red_results = await asyncio.gather(*red_reasoning_tasks)
+        
+        # Run blue team autonomous agents
+        blue_reasoning_tasks = []
+        for agent in self.autonomous_blue_agents:
+            # Get recent opponent actions for learning
+            recent_red_actions = [action.get('action', {}) for action in self.current_state.active_attacks[-3:]]
+            
+            task = agent.autonomous_reasoning(current_state_dict, recent_red_actions)
+            blue_reasoning_tasks.append(task)
+        
+        blue_results = await asyncio.gather(*blue_reasoning_tasks)
+        
+        # Process red team results
+        for i, result in enumerate(red_results):
+            action = result['action']
+            reasoning_chain = result['reasoning_chain']
+            confidence = result['confidence']
+            
+            # Execute action and learn from outcome
+            success = await self._execute_autonomous_action(action, 'red')
+            
+            # Update agent learning
+            await self.autonomous_red_agents[i].learn_from_outcome(
+                action, success, {'execution_time': datetime.now()},
+                blue_results[0]['action'] if blue_results else None
+            )
+            
+            autonomous_results['red_actions'].append({
+                'agent_id': self.autonomous_red_agents[i].agent_id,
+                'action': action,
+                'success': success,
+                'confidence': confidence,
+                'reasoning_chain': reasoning_chain
+            })
+        
+        # Process blue team results
+        for i, result in enumerate(blue_results):
+            action = result['action']
+            reasoning_chain = result['reasoning_chain']
+            confidence = result['confidence']
+            
+            # Execute action and learn from outcome
+            success = await self._execute_autonomous_action(action, 'blue')
+            
+            # Update agent learning
+            await self.autonomous_blue_agents[i].learn_from_outcome(
+                action, success, {'execution_time': datetime.now()},
+                red_results[0]['action'] if red_results else None
+            )
+            
+            autonomous_results['blue_actions'].append({
+                'agent_id': self.autonomous_blue_agents[i].agent_id,
+                'action': action,
+                'success': success,
+                'confidence': confidence,
+                'reasoning_chain': reasoning_chain
+            })
+        
+        # Log autonomous insights
+        autonomous_results['autonomous_insights'] = [
+            f"Red team generated {len(red_results)} autonomous decisions",
+            f"Blue team generated {len(blue_results)} autonomous decisions",
+            f"Average red team confidence: {np.mean([r['confidence'] for r in red_results]):.2f}",
+            f"Average blue team confidence: {np.mean([r['confidence'] for r in blue_results]):.2f}"
+        ]
+        
+        logger.info(f"🤖 Autonomous step: {len(red_results)} red decisions, {len(blue_results)} blue decisions")
+        
+        return autonomous_results
+    
+    async def _execute_autonomous_action(self, action: Dict[str, Any], team_type: str) -> bool:
+        """Execute an autonomous action and return success status"""
+        
+        action_type = action.get('type', 'unknown')
+        parameters = action.get('parameters', {})
+        
+        # Simulate action execution with realistic success rates
+        base_success_rate = 0.7
+        
+        # Adjust based on action type and current state
+        if team_type == 'red':
+            if action_type == 'reconnaissance':
+                success_rate = 0.85  # Recon usually succeeds
+            elif action_type == 'exploitation':
+                # Success depends on vulnerabilities and defenses
+                vuln_count = len(self.current_state.network_state.active_vulnerabilities)
+                defense_count = len(self.current_state.active_defenses)
+                success_rate = 0.6 + (vuln_count * 0.1) - (defense_count * 0.05)
+            elif action_type == 'lateral_movement':
+                # Success depends on current compromise level
+                compromised_ratio = len(self.current_state.network_state.compromised_hosts) / max(1, len(self.current_state.network_state.network_topology.get('hosts', [])))
+                success_rate = 0.5 + (compromised_ratio * 0.3)
+            else:
+                success_rate = base_success_rate
+                
+        else:  # blue team
+            if action_type == 'threat_detection':
+                # Success depends on threat level
+                threat_level = self.current_state.threat_level
+                success_rate = 0.6 + (threat_level * 0.3)
+            elif action_type == 'incident_response':
+                # Success depends on how many compromised hosts exist
+                compromised_count = len(self.current_state.network_state.compromised_hosts)
+                success_rate = 0.8 - (compromised_count * 0.1)
+            else:
+                success_rate = base_success_rate
+        
+        # Add randomness
+        success_rate = np.clip(success_rate * random.uniform(0.8, 1.2), 0.1, 0.95)
+        
+        success = random.random() < success_rate
+        
+        # Apply action effects if successful
+        if success:
+            await self._apply_action_effects(action, team_type)
+        
+        # Log the action execution
+        self.archangel_logger.log_system_event(create_system_event(
+            event_type='autonomous_action_execution',
+            description=f'{team_type.title()} team executed {action_type} with {"success" if success else "failure"}',
+            affected_systems=[action.get('agent_id', 'unknown')],
+            severity='info' if success else 'warning',
+            metadata={
+                'action': action,
+                'success_rate': success_rate,
+                'actual_success': success
+            }
+        ))
+        
+        return success
+    
+    async def _apply_action_effects(self, action: Dict[str, Any], team_type: str):
+        """Apply the effects of a successful action"""
+        
+        action_type = action.get('type', 'unknown')
+        parameters = action.get('parameters', {})
+        
+        if team_type == 'red' and action_type == 'exploitation':
+            # Add a compromised host
+            targets = parameters.get('targets', [])
+            if targets:
+                target = targets[0]
+                if target not in self.current_state.network_state.compromised_hosts:
+                    self.current_state.network_state.compromised_hosts.append(target)
+                    logger.info(f"🔥 Autonomous red team compromised: {target}")
+            
+            # Add a new vulnerability
+            new_vuln = f"AUTO_CVE_2024_{len(self.current_state.network_state.active_vulnerabilities)+1:03d}"
+            self.current_state.network_state.active_vulnerabilities.append(new_vuln)
+            
+        elif team_type == 'blue' and action_type == 'incident_response':
+            # Remove a compromised host (containment)
+            if self.current_state.network_state.compromised_hosts:
+                contained_host = self.current_state.network_state.compromised_hosts.pop(0)
+                logger.info(f"🛡️ Autonomous blue team contained: {contained_host}")
+            
+            # Add a defense measure
+            self.current_state.active_defenses.append({
+                'action': action,
+                'timestamp': datetime.now(),
+                'status': 'active'
+            })
+    
+    def _merge_agent_results(self, autonomous_results: Dict[str, Any], marl_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge autonomous and MARL agent results"""
+        
+        merged = {
+            'red_actions': [],
+            'blue_actions': [],
+            'emergent_behaviors': marl_results.get('emergent_behaviors', []),
+            'coordination_signals': marl_results.get('coordination_signals', {}),
+            'autonomous_insights': autonomous_results.get('autonomous_insights', [])
+        }
+        
+        # Prefer autonomous results but include MARL for comparison
+        merged['red_actions'] = autonomous_results.get('red_actions', [])
+        merged['blue_actions'] = autonomous_results.get('blue_actions', [])
+        
+        # Add MARL actions as backup if autonomous failed
+        if not merged['red_actions']:
+            merged['red_actions'] = marl_results.get('red_actions', [])
+        if not merged['blue_actions']:
+            merged['blue_actions'] = marl_results.get('blue_actions', [])
+        
+        return merged
     
     async def _run_adversarial_llm_step(self, marl_results: Dict[str, Any]) -> Dict[str, Any]:
         """Run adversarial LLM reasoning step"""
@@ -1258,6 +1560,10 @@ class ArchangelOrchestrator:
         final_summary = self.get_demonstration_summary()
         logger.info("Demonstration Summary:")
         logger.info(json.dumps(final_summary, indent=2, default=str))
+        
+        # Generate comprehensive session report
+        session_report = self.archangel_logger.generate_session_report()
+        logger.info("\n" + session_report)
     
     async def _generate_final_demonstration_summary(self):
         """Generate final demonstration summary with impressive results"""
