@@ -14,7 +14,7 @@ from enum import Enum
 import json
 from collections import defaultdict, deque
 
-from .logging_system import ArchangelLogger
+from .logging_system import ArchangelLogger, create_system_event
 
 class ReasoningType(Enum):
     STRATEGIC_PLANNING = "strategic_planning"

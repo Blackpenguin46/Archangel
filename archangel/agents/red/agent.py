@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from ...core.llm_integration import get_llm_manager
-from ...core.logging_system import ArchangelLogger
+from ...core.logging_system import ArchangelLogger, create_system_event
 
 class RedTeamAgent:
     """Autonomous Red Team AI Agent for penetration testing"""
@@ -70,13 +70,19 @@ class RedTeamAgent:
     async def _log_initialization(self):
         """Log agent initialization"""
         if self.logger:
-            await self.logger.log_system_event({
-                'event_type': 'agent_initialization',
-                'agent_id': self.agent_id,
-                'mode': 'container' if self.container_mode else 'host',
-                'tools_available': self.tools_available,
-                'target_network': self.target_network
-            })
+            event = create_system_event(
+                event_type='agent_initialization',
+                description=f'Red team agent {self.agent_id} initialized',
+                affected_systems=[self.agent_id],
+                severity='info',
+                metadata={
+                    'agent_id': self.agent_id,
+                    'mode': 'container' if self.container_mode else 'host',
+                    'tools_available': self.tools_available,
+                    'target_network': self.target_network
+                }
+            )
+            self.logger.log_system_event(event)
     
     async def autonomous_operation_cycle(self) -> Dict[str, Any]:
         """Execute one autonomous operation cycle"""
@@ -111,11 +117,17 @@ class RedTeamAgent:
             }
             
             if self.logger:
-                await self.logger.log_system_event({
-                    'event_type': 'agent_error',
-                    'error': str(e),
-                    'agent_id': self.agent_id
-                })
+                event = create_system_event(
+                    event_type='agent_error',
+                    description=f'Red team agent error: {str(e)}',
+                    affected_systems=[self.agent_id],
+                    severity='error',
+                    metadata={
+                        'error': str(e),
+                        'agent_id': self.agent_id
+                    }
+                )
+                self.logger.log_system_event(event)
                 
             return error_result
     
@@ -383,7 +395,7 @@ class RedTeamAgent:
     async def _log_operation(self, decision: Dict[str, Any], result: Dict[str, Any]):
         """Log the operation to the system logger"""
         if self.logger:
-            await self.logger.log_ai_reasoning({
+            self.logger.log_ai_reasoning({
                 'agent_id': self.agent_id,
                 'agent_type': 'red_team',
                 'decision': decision,

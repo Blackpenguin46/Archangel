@@ -10,6 +10,9 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
 
+# Fix HuggingFace tokenizers fork warning
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 class LocalLLMManager:
     """Manages local LLM models for autonomous AI agents"""
     
@@ -41,6 +44,7 @@ class LocalLLMManager:
                 model=self.model_path,
                 tokenizer=self.model_path,
                 max_length=512,
+                truncation=True,
                 do_sample=True,
                 temperature=0.7,
                 device="cpu"  # Use CPU for compatibility
@@ -76,14 +80,24 @@ class LocalLLMManager:
             prompt = self._build_red_team_prompt(context)
             
             # Generate response using HuggingFace pipeline
-            response = self.llm(prompt, max_length=len(prompt.split()) + 100, num_return_sequences=1)
+            response = self.llm(prompt, max_length=len(prompt.split()) + 100, truncation=True, num_return_sequences=1)
+            
+            # Validate response format
+            if not response or len(response) == 0:
+                raise ValueError("LLM returned empty response")
+            
+            if 'generated_text' not in response[0]:
+                raise ValueError("LLM response missing 'generated_text' field")
             
             # Parse LLM response
-            decision_text = response[0]['generated_text'][len(prompt):].strip()
+            full_text = response[0]['generated_text']
+            decision_text = full_text[len(prompt):].strip() if len(full_text) > len(prompt) else full_text.strip()
+            
             return self._parse_red_team_response(decision_text, context)
             
         except Exception as e:
             print(f"⚠️ LLM red team decision failed: {e}")
+            print(f"🔄 Falling back to intelligent rule-based decision")
             return await self._fallback_red_team_decision(context)
     
     async def _llm_blue_team_decision(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -92,14 +106,24 @@ class LocalLLMManager:
             prompt = self._build_blue_team_prompt(context)
             
             # Generate response using HuggingFace pipeline
-            response = self.llm(prompt, max_length=len(prompt.split()) + 100, num_return_sequences=1, temperature=0.3)
+            response = self.llm(prompt, max_length=len(prompt.split()) + 100, truncation=True, num_return_sequences=1, temperature=0.3)
+            
+            # Validate response format
+            if not response or len(response) == 0:
+                raise ValueError("LLM returned empty response")
+            
+            if 'generated_text' not in response[0]:
+                raise ValueError("LLM response missing 'generated_text' field")
             
             # Parse LLM response
-            decision_text = response[0]['generated_text'][len(prompt):].strip()
+            full_text = response[0]['generated_text']
+            decision_text = full_text[len(prompt):].strip() if len(full_text) > len(prompt) else full_text.strip()
+            
             return self._parse_blue_team_response(decision_text, context)
             
         except Exception as e:
             print(f"⚠️ LLM blue team decision failed: {e}")
+            print(f"🔄 Falling back to intelligent rule-based decision")
             return await self._fallback_blue_team_decision(context)
     
     def _build_red_team_prompt(self, context: Dict[str, Any]) -> str:
@@ -263,9 +287,13 @@ Action:"""
         elif 'LATERAL' in response_text.upper():
             action_type = 'lateral_movement'
         
+        # Get target - use discovered hosts if available, otherwise default
+        discovered_hosts = context.get('discovered_hosts', [])
+        target = discovered_hosts[0] if discovered_hosts else '172.18.0.0/24'
+        
         return {
             'action_type': action_type,
-            'target': context.get('discovered_hosts', ['172.18.0.0/24'])[0],
+            'target': target,
             'reasoning': response_text,
             'confidence': 0.8,
             'llm_generated': True,

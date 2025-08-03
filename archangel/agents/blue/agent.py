@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from ...core.llm_integration import get_llm_manager
-from ...core.logging_system import ArchangelLogger
+from ...core.logging_system import ArchangelLogger, create_system_event
 
 class BlueTeamAgent:
     """Autonomous Blue Team AI Agent for security monitoring and defense"""
@@ -80,26 +80,40 @@ class BlueTeamAgent:
     async def _setup_monitoring(self):
         """Setup security monitoring"""
         try:
-            # Create monitoring directories
+            # Create monitoring directories (use local logs if system access denied)
             if self.container_mode:
-                os.makedirs("/var/log/security", exist_ok=True)
+                try:
+                    os.makedirs("/var/log/security", exist_ok=True)
+                    print(f"🛡️ System monitoring directories created")
+                except PermissionError:
+                    # Fallback to local monitoring when system access denied
+                    os.makedirs("logs/security", exist_ok=True)
+                    print(f"🛡️ Using local monitoring directories (system access limited)")
                 
             # Initialize baseline monitoring
             await self._baseline_monitoring()
+            print(f"✅ Security monitoring initialized successfully")
             
         except Exception as e:
-            print(f"⚠️ Failed to setup monitoring: {e}")
+            print(f"⚠️ Non-critical monitoring setup issue: {e}")
+            print(f"🔄 Agent will continue with limited monitoring capabilities")
     
     async def _log_initialization(self):
         """Log agent initialization"""
         if self.logger:
-            await self.logger.log_system_event({
-                'event_type': 'agent_initialization',
-                'agent_id': self.agent_id,
-                'mode': 'container' if self.container_mode else 'host',
-                'tools_available': self.tools_available,
-                'defense_posture': self.defense_posture
-            })
+            event = create_system_event(
+                event_type='agent_initialization',
+                description=f'Blue team agent {self.agent_id} initialized',
+                affected_systems=[self.agent_id],
+                severity='info',
+                metadata={
+                    'agent_id': self.agent_id,
+                    'mode': 'container' if self.container_mode else 'host',
+                    'tools_available': self.tools_available,
+                    'defense_posture': self.defense_posture
+                }
+            )
+            self.logger.log_system_event(event)
     
     async def autonomous_operation_cycle(self) -> Dict[str, Any]:
         """Execute one autonomous operation cycle"""
@@ -141,11 +155,17 @@ class BlueTeamAgent:
             }
             
             if self.logger:
-                await self.logger.log_system_event({
-                    'event_type': 'agent_error',
-                    'error': str(e),
-                    'agent_id': self.agent_id
-                })
+                event = create_system_event(
+                    event_type='agent_error',
+                    description=f'Blue team agent error: {str(e)}',
+                    affected_systems=[self.agent_id],
+                    severity='error',
+                    metadata={
+                        'error': str(e),
+                        'agent_id': self.agent_id
+                    }
+                )
+                self.logger.log_system_event(event)
                 
             return error_result
     
@@ -541,7 +561,7 @@ class BlueTeamAgent:
     async def _log_operation(self, decision: Dict[str, Any], result: Dict[str, Any], threat_analysis: Dict[str, Any]):
         """Log the operation to the system logger"""
         if self.logger:
-            await self.logger.log_ai_reasoning({
+            self.logger.log_ai_reasoning({
                 'agent_id': self.agent_id,
                 'agent_type': 'blue_team',
                 'decision': decision,

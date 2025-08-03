@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from archangel.agents.red import RedTeamAgent
 from archangel.agents.blue import BlueTeamAgent
-from archangel.core.logging_system import ArchangelLogger
+from archangel.core.logging_system import ArchangelLogger, create_system_event
 
 class ArchangelOrchestrator:
     """Unified orchestrator for AI vs AI cyber conflict simulation"""
@@ -141,13 +141,19 @@ class ArchangelOrchestrator:
     async def _log_tick_results(self, red_result: Dict[str, Any], blue_result: Dict[str, Any]):
         """Log the tick results"""
         if self.logger:
-            await self.logger.log_system_event({
-                'event_type': 'simulation_tick',
-                'tick_number': self.tick_count,
-                'red_team_result': red_result if not isinstance(red_result, Exception) else str(red_result),
-                'blue_team_result': blue_result if not isinstance(blue_result, Exception) else str(blue_result),
-                'timestamp': datetime.now().isoformat()
-            })
+            event = create_system_event(
+                event_type='simulation_tick',
+                description=f'Simulation tick #{self.tick_count} completed',
+                affected_systems=['orchestrator'],
+                severity='info',
+                metadata={
+                    'tick_number': self.tick_count,
+                    'red_team_result': red_result if not isinstance(red_result, Exception) else str(red_result),
+                    'blue_team_result': blue_result if not isinstance(blue_result, Exception) else str(blue_result),
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+            self.logger.log_system_event(event)
     
     async def _update_metrics(self):
         """Update simulation metrics"""
@@ -353,8 +359,8 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate model path if provided
-    if args.model and not Path(args.model).exists():
+    # Validate model path if provided (skip validation for HuggingFace model IDs)
+    if args.model and "/" not in args.model and not Path(args.model).exists():
         print(f"❌ Model file not found: {args.model}")
         sys.exit(1)
     

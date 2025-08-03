@@ -45,7 +45,7 @@ class ArchangelDemo:
             }
         }
     
-    async def run_demo(self, scenario: str, container_mode: bool = False, model_path: str = None):
+    async def run_demo(self, scenario: str, container_mode: bool = False, model_path: str = None, auto_start: bool = False):
         """Run the specified demo scenario"""
         
         if scenario not in self.demo_scenarios:
@@ -56,7 +56,7 @@ class ArchangelDemo:
         config = self.demo_scenarios[scenario]
         
         # Display demo introduction
-        await self._display_intro(config, container_mode, model_path)
+        await self._display_intro(config, container_mode, model_path, auto_start)
         
         # Initialize orchestrator
         orchestrator = ArchangelOrchestrator(
@@ -78,7 +78,7 @@ class ArchangelDemo:
         # Display demo conclusion
         await self._display_conclusion(config)
     
-    async def _display_intro(self, config: dict, container_mode: bool, model_path: str):
+    async def _display_intro(self, config: dict, container_mode: bool, model_path: str, auto_start: bool = False):
         """Display demo introduction"""
         print(f"🎯 ARCHANGEL AI vs AI CYBER CONFLICT DEMONSTRATION")
         print(f"=" * 80)
@@ -120,8 +120,9 @@ class ArchangelDemo:
         print(f"")
         print(f"=" * 80)
         
-        # Wait for user confirmation
-        input(f"\\n▶️  Press Enter to start the demonstration...")
+        # Wait for user confirmation (unless auto-start is enabled)
+        if not auto_start:
+            input(f"\\n▶️  Press Enter to start the demonstration...")
         print(f"")
     
     async def _display_conclusion(self, config: dict):
@@ -228,6 +229,12 @@ Examples:
         help='Path to local LLM model (GGUF format)'
     )
     
+    parser.add_argument(
+        '--auto-start',
+        action='store_true',
+        help='Start demo automatically without waiting for user input'
+    )
+    
     args = parser.parse_args()
     
     # Handle list command
@@ -241,8 +248,8 @@ Examples:
         print_scenarios()
         sys.exit(1)
     
-    # Validate model path if provided
-    if args.model and not Path(args.model).exists():
+    # Validate model path if provided (skip validation for HuggingFace model IDs)
+    if args.model and "/" not in args.model and not Path(args.model).exists():
         print(f"❌ Model file not found: {args.model}")
         sys.exit(1)
     
@@ -253,7 +260,8 @@ Examples:
         await demo.run_demo(
             scenario=args.scenario,
             container_mode=args.container,
-            model_path=args.model
+            model_path=args.model,
+            auto_start=getattr(args, 'auto_start', False)
         )
     except KeyboardInterrupt:
         print(f"\\n🛑 Demo stopped by user")

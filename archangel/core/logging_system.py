@@ -283,6 +283,25 @@ class ArchangelLogger:
         conn.commit()
         conn.close()
     
+    def log_ai_reasoning(self, reasoning_data: Dict[str, Any]):
+        """Log AI decision-making reasoning and thought processes"""
+        # Store in memory
+        self.ai_decisions.append(reasoning_data)
+        
+        # Log to file with formatting
+        agent_id = reasoning_data.get('agent_id', 'unknown')
+        decision_type = reasoning_data.get('decision_type', 'unknown')
+        reasoning = reasoning_data.get('reasoning', 'No reasoning provided')
+        confidence = reasoning_data.get('confidence', 0.0)
+        
+        self.ai_reasoning_logger.info(
+            f"🧠 AI REASONING - {agent_id.upper()}\n"
+            f"   Decision Type: {decision_type}\n"
+            f"   Confidence: {confidence:.2f}\n"
+            f"   Reasoning: {reasoning}\n"
+            f"   Context: {safe_json_dumps(reasoning_data.get('context', {}), indent=2)}"
+        )
+    
     def analyze_learning_progression(self) -> Dict[str, Any]:
         """Analyze how AI agents are learning and improving"""
         analysis = {
