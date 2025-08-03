@@ -99,13 +99,14 @@ class ArchangelOrchestrator:
         self.demo_milestones = []
         
         # Log initialization
-        self.archangel_logger.log_system_event(create_system_event(
+        init_event = create_system_event(
             event_type='orchestrator_initialization',
             description=f'Archangel Orchestrator initialized with session {self.session_id}',
             affected_systems=['orchestrator'],
             severity='info',
             metadata={'config': config}
-        ))
+        )
+        self.archangel_logger.log_system_event(init_event)
         
         logger.info(f"Archangel Orchestrator initialized - Session: {self.session_id}")
     
@@ -176,13 +177,14 @@ class ArchangelOrchestrator:
             )
             self.autonomous_red_agents.append(agent)
             
-            self.archangel_logger.log_system_event(create_system_event(
+            agent_event = create_system_event(
                 event_type='autonomous_agent_created',
                 description=f'Red team autonomous agent created: {agent.agent_id}',
                 affected_systems=[agent.agent_id],
                 severity='info',
                 metadata={'specialization': specialization, 'agent_type': 'red'}
-            ))
+            )
+            self.archangel_logger.log_system_event(agent_event)
         
         # Create blue team autonomous agents
         num_blue_agents = blue_config.get('num_agents', 3)
@@ -196,13 +198,14 @@ class ArchangelOrchestrator:
             )
             self.autonomous_blue_agents.append(agent)
             
-            self.archangel_logger.log_system_event(create_system_event(
+            agent_event = create_system_event(
                 event_type='autonomous_agent_created',
                 description=f'Blue team autonomous agent created: {agent.agent_id}',
                 affected_systems=[agent.agent_id],
                 severity='info',
                 metadata={'specialization': specialization, 'agent_type': 'blue'}
-            ))
+            )
+            self.archangel_logger.log_system_event(agent_event)
         
         logger.info(f"✅ Created {num_red_agents} red team and {num_blue_agents} blue team autonomous agents")
     
@@ -872,7 +875,7 @@ class ArchangelOrchestrator:
             await self._apply_action_effects(action, team_type)
         
         # Log the action execution
-        self.archangel_logger.log_system_event(create_system_event(
+        action_event = create_system_event(
             event_type='autonomous_action_execution',
             description=f'{team_type.title()} team executed {action_type} with {"success" if success else "failure"}',
             affected_systems=[action.get('agent_id', 'unknown')],
@@ -882,7 +885,8 @@ class ArchangelOrchestrator:
                 'success_rate': success_rate,
                 'actual_success': success
             }
-        ))
+        )
+        self.archangel_logger.log_system_event(action_event)
         
         return success
     
