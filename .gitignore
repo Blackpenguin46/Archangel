@@ -119,3 +119,23 @@ blackhat_demo_*.log
 
 # Docker volumes
 docker-data/
+# Large model files
+models/
+trained_models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.db
+
+# Log files
+logs/
+*.log
+
+# Temporary files
+__pycache__/
+*.pyc
+.DS_Store
+
+EOF < /dev/null

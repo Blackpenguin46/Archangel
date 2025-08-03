@@ -19,34 +19,38 @@ class LocalLLMManager:
         self.model_loaded = False
         self.fallback_mode = True
         
-        # Try to import llama-cpp-python
+        # Try to import transformers for HuggingFace models
         try:
-            from llama_cpp import Llama
-            self.llama_cpp_available = True
-            if model_path and os.path.exists(model_path):
-                self._load_model()
+            from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+            self.transformers_available = True
+            if model_path:
+                self._load_hf_model()
         except ImportError:
-            print("⚠️ llama-cpp-python not available, using fallback intelligent responses")
-            self.llama_cpp_available = False
+            print("⚠️ transformers not available, using fallback intelligent responses")
+            self.transformers_available = False
     
-    def _load_model(self):
-        """Load the local LLM model"""
+    def _load_hf_model(self):
+        """Load HuggingFace model"""
         try:
-            from llama_cpp import Llama
-            print(f"🧠 Loading local LLM model: {self.model_path}")
+            from transformers import pipeline
+            print(f"🧠 Loading HuggingFace model: {self.model_path}")
             
-            self.llm = Llama(
-                model_path=self.model_path,
-                n_ctx=2048,  # Context window
-                n_threads=4,  # CPU threads
-                verbose=False
+            # Use text generation pipeline for cybersecurity models
+            self.llm = pipeline(
+                "text-generation",
+                model=self.model_path,
+                tokenizer=self.model_path,
+                max_length=512,
+                do_sample=True,
+                temperature=0.7,
+                device="cpu"  # Use CPU for compatibility
             )
             self.model_loaded = True
             self.fallback_mode = False
-            print(f"✅ Local LLM model loaded successfully")
+            print(f"✅ HuggingFace model loaded successfully")
             
         except Exception as e:
-            print(f"⚠️ Failed to load LLM model: {e}")
+            print(f"⚠️ Failed to load HuggingFace model: {e}")
             print(f"🔄 Falling back to intelligent rule-based responses")
             self.fallback_mode = True
     
@@ -67,19 +71,15 @@ class LocalLLMManager:
             return await self._fallback_blue_team_decision(context)
     
     async def _llm_red_team_decision(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate red team decision using local LLM"""
+        """Generate red team decision using HuggingFace model"""
         try:
             prompt = self._build_red_team_prompt(context)
             
-            response = self.llm(
-                prompt,
-                max_tokens=256,
-                temperature=0.7,
-                stop=["</decision>", "\n\n"]
-            )
+            # Generate response using HuggingFace pipeline
+            response = self.llm(prompt, max_length=len(prompt.split()) + 100, num_return_sequences=1)
             
             # Parse LLM response
-            decision_text = response['choices'][0]['text'].strip()
+            decision_text = response[0]['generated_text'][len(prompt):].strip()
             return self._parse_red_team_response(decision_text, context)
             
         except Exception as e:
@@ -87,19 +87,15 @@ class LocalLLMManager:
             return await self._fallback_red_team_decision(context)
     
     async def _llm_blue_team_decision(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate blue team decision using local LLM"""
+        """Generate blue team decision using HuggingFace model"""
         try:
             prompt = self._build_blue_team_prompt(context)
             
-            response = self.llm(
-                prompt,
-                max_tokens=256,
-                temperature=0.3,  # Lower temperature for defensive decisions
-                stop=["</decision>", "\n\n"]
-            )
+            # Generate response using HuggingFace pipeline
+            response = self.llm(prompt, max_length=len(prompt.split()) + 100, num_return_sequences=1, temperature=0.3)
             
             # Parse LLM response
-            decision_text = response['choices'][0]['text'].strip()
+            decision_text = response[0]['generated_text'][len(prompt):].strip()
             return self._parse_blue_team_response(decision_text, context)
             
         except Exception as e:
