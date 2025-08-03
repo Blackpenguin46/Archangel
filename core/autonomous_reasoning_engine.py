@@ -14,7 +14,7 @@ from enum import Enum
 import json
 from collections import defaultdict, deque
 
-from logging_system import ArchangelLogger, create_ai_decision, create_learning_event
+from logging_system import ArchangelLogger, create_ai_decision, create_learning_event, create_system_event
 
 class ReasoningType(Enum):
     STRATEGIC_PLANNING = "strategic_planning"
@@ -78,17 +78,17 @@ class AutonomousAgent:
         # Initialize base strategies based on type
         self._initialize_base_knowledge()
         
-        self.logger.log_system_event({
-            'event_type': 'agent_initialization',
-            'description': f'Autonomous {agent_type} agent {agent_id} initialized with {specialization} specialization',
-            'affected_systems': [agent_id],
-            'severity': 'info',
-            'timestamp': datetime.now(),
-            'metadata': {
+        init_event = create_system_event(
+            event_type='agent_initialization',
+            description=f'Autonomous {agent_type} agent {agent_id} initialized with {specialization} specialization',
+            affected_systems=[agent_id],
+            severity='info',
+            metadata={
                 'specialization': specialization,
                 'initial_knowledge_count': len(self.knowledge_base.successful_strategies)
             }
-        })
+        )
+        self.logger.log_system_event(init_event)
     
     def _initialize_base_knowledge(self):
         """Initialize agent with base knowledge based on type and specialization"""
