@@ -1,0 +1,48 @@
+services:
+  # Enterprise Web Server (Target)
+  enterprise-web:
+    image: nginx:alpine
+    container_name: enterprise-web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./enterprise-data/web:/usr/share/nginx/html
+    networks:
+      - enterprise-network
+
+  # Enterprise Database (Target)
+  enterprise-db:
+    image: postgres:15-alpine
+    container_name: enterprise-db
+    environment:
+      - POSTGRES_DB=enterprise_data
+      - POSTGRES_USER=enterprise_user
+      - POSTGRES_PASSWORD=enterprise_password_123
+    volumes:
+      - enterprise-db-data:/var/lib/postgresql/data
+    networks:
+      - enterprise-network
+
+  # Red Team Kali Linux
+  red-team-kali:
+    image: kalilinux/kali-rolling
+    container_name: red-team-kali
+    privileged: true
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      - enterprise-network
+    command: /bin/bash -c "apt update && apt install -y nmap netcat-openbsd curl postgresql-client && tail -f /dev/null"
+
+volumes:
+  enterprise-db-data:
+
+networks:
+  enterprise-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.3.0.0/24

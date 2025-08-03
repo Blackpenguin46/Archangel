@@ -267,7 +267,7 @@ services:
     networks:
       - enterprise-network
 
-  enterprise-file-server:
+  enterprise-ftp-server:
     image: alpine/ftp-server
     container_name: enterprise-ftp
     environment:

@@ -1,0 +1,73 @@
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and install basic security tools
+RUN apt update && apt upgrade -y
+RUN apt install -y \
+    python3 \
+    python3-pip \
+    curl \
+    wget \
+    git \
+    vim \
+    ssh \
+    net-tools \
+    tcpdump \
+    ngrep \
+    iftop \
+    htop \
+    iotop \
+    fail2ban \
+    rsyslog \
+    logwatch \
+    rkhunter \
+    chkrootkit \
+    clamav \
+    clamav-daemon \
+    iptables \
+    iputils-ping \
+    dnsutils \
+    lsof \
+    strace
+
+# Install Python packages for AI integration and monitoring
+RUN pip3 install \
+    requests \
+    psutil \
+    scapy \
+    pandas \
+    numpy \
+    asyncio \
+    aiohttp
+
+# Create directories for AI agent and logs
+RUN mkdir -p /app /data /var/log/security /logs
+
+# Copy AI agent code
+COPY core/blue_team_container_agent.py /app/blue_team_agent.py
+COPY core/ /app/core/
+
+# Set up security monitoring configurations
+RUN mkdir -p /etc/fail2ban
+COPY containers/blue-team/configs/fail2ban.conf /etc/fail2ban/
+
+# Create blue team user
+RUN useradd -m -s /bin/bash blueteam && \
+    usermod -aG sudo blueteam && \
+    echo "blueteam:blueteam" | chpasswd
+
+# Set up log directories with proper permissions
+RUN mkdir -p /var/log/security && \
+    chown blueteam:blueteam /var/log/security && \
+    chmod 755 /var/log/security
+
+# Set working directory
+WORKDIR /app
+
+# Expose monitoring ports
+EXPOSE 22
+
+# Start the AI-controlled blue team agent
+CMD ["/bin/bash", "-c", "service rsyslog start && service fail2ban start && python3 blue_team_agent.py"]

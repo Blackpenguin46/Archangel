@@ -399,7 +399,15 @@ async def run_demonstration(demo_type: str = 'blackhat_brief'):
         print("="*80)
         
         summary = orchestrator.get_demonstration_summary()
-        print(json.dumps(summary, indent=2, default=str))
+        # Handle datetime serialization safely
+        def json_serial(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if hasattr(obj, '__dict__'):
+                return obj.__dict__
+            return str(obj)
+        
+        print(json.dumps(summary, indent=2, default=json_serial))
         
         print("\n🎉 Thank you for witnessing the future of AI vs AI cybersecurity!")
         print("💡 Questions? Visit us at the BlackHat Arsenal booth!")

@@ -1,0 +1,91 @@
+services:
+  # Red Team - AI-Controlled Kali Linux
+  red-team-kali:
+    build:
+      context: .
+      dockerfile: containers/red-team/Dockerfile.kali
+    container_name: archangel-red-team
+    privileged: true
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    volumes:
+      - ./core:/app/core
+      - ./logs:/app/logs
+      - red-team-data:/data
+      - red-team-tools:/tools
+    environment:
+      - TEAM_TYPE=red
+      - AI_CONTROLLED=true
+      - PYTHONPATH=/app
+    networks:
+      - combat-network
+    ports:
+      - "2222:22"  # SSH access for debugging
+    command: /bin/bash -c "cd /app && python red_team_agent.py"
+
+  # Blue Team - Enterprise Security Operations Center
+  blue-team-soc:
+    build:
+      context: .
+      dockerfile: containers/blue-team/Dockerfile.ubuntu-soc
+    container_name: archangel-blue-team
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./core:/app/core
+      - ./logs:/app/logs
+      - blue-team-data:/data
+      - blue-team-logs:/var/log/security
+    environment:
+      - TEAM_TYPE=blue
+      - AI_CONTROLLED=true
+      - PYTHONPATH=/app
+    networks:
+      - combat-network
+    ports:
+      - "5601:5601"  # Kibana dashboard
+      - "3000:3000"  # Grafana monitoring
+    command: /bin/bash -c "cd /app && python blue_team_agent.py"
+
+  # Target Network - Vulnerable Enterprise Environment
+  target-enterprise:
+    image: ubuntu:22.04
+    container_name: target-enterprise
+    volumes:
+      - enterprise-data:/var/www/html
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    networks:
+      - combat-network
+    ports:
+      - "8080:80"
+      - "3306:3306"
+      - "21:21"
+    command: /bin/bash -c "
+      apt update && 
+      apt install -y apache2 mysql-server vsftpd openssh-server &&
+      echo '<h1>Acme Financial Corp</h1><p>Employee Portal</p>' > /var/www/html/index.html &&
+      service apache2 start && 
+      service mysql start && 
+      service vsftpd start &&
+      service ssh start &&
+      tail -f /dev/null"
+
+volumes:
+  red-team-data:
+  red-team-tools:
+  blue-team-data:
+  blue-team-logs:
+  enterprise-data:
+
+networks:
+  combat-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
