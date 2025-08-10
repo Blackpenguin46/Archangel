@@ -1,0 +1,33 @@
+# Archangel Autonomous AI Evolution - Agent Framework Requirements
+# Core dependencies for the multi-agent coordination system
+
+# Async and concurrency
+asyncio
+aiofiles>=0.8.0
+
+# ZeroMQ for secure messaging
+pyzmq>=25.0.0
+zmq>=0.0.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+pytest-cov>=4.1.0
+
+# Logging and utilities
+structlog>=23.1.0
+python-dateutil>=2.8.0
+
+# Data structures and serialization
+pydantic>=2.0.0
+dataclasses-json>=0.6.0
+
+# Cryptography for secure communication
+cryptography>=41.0.0
+
+# Development tools
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.4.0
+isort>=5.12.0
