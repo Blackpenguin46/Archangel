@@ -762,8 +762,7 @@ Combined Indicators:
         except Exception as e:
             self.logger.error(f"Error during SOC analyst shutdown: {e}")
 
-cla
-ss FirewallRuleAction(Enum):
+class FirewallRuleAction(Enum):
     """Firewall rule actions"""
     ALLOW = "allow"
     DENY = "deny"
@@ -1543,8 +1542,7 @@ class FirewallConfiguratorAgent(Agent):
         except Exception as e:
             self.logger.error(f"Error during firewall configurator shutdown: {e}")
 
-cla
-ss LogLevel(Enum):
+class LogLevel(Enum):
     """Log severity levels"""
     DEBUG = "debug"
     INFO = "info"

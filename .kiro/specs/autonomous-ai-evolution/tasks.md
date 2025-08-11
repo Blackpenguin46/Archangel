@@ -134,7 +134,7 @@
   - Write tests for game loop progression and scenario execution
   - _Requirements: 6.1, 6.2, 14.1, 14.2, 14.3, 14.4, 23.1, 23.2_
 
-- [-] 11. Implement dynamic scoring and evaluation engine
+- [x] 11. Implement dynamic scoring and evaluation engine
   - Create weighted scoring system for Red and Blue team performance metrics
   - Build real-time score calculation with objective-based evaluation
   - Implement performance tracking for detection speed, containment time, and success rates
@@ -142,7 +142,7 @@
   - Write tests for scoring accuracy and fairness across different scenarios
   - _Requirements: 6.3, 6.4, 23.3, 23.4_
 
-- [ ] 12. Build adversarial self-play and learning systems
+- [x] 12. Build adversarial self-play and learning systems
   - Implement self-play mode for agents to analyze and improve tactics
   - Create reinforcement learning integration for strategy evolution
   - Build experience replay and tactical knowledge distillation
@@ -150,7 +150,7 @@
   - Write tests for learning effectiveness and strategy evolution
   - _Requirements: 15.1, 15.2, 15.3, 15.4_
 
-- [ ] 13. Create comprehensive audit and replay system
+- [x] 13. Create comprehensive audit and replay system
   - Implement decision logging with prompt, context, and reasoning capture
   - Build session replay capability for forensic analysis and training
   - Create audit trail generation with cryptographic integrity verification
@@ -158,7 +158,7 @@
   - Write tests for audit completeness and replay accuracy
   - _Requirements: 21.1, 21.2, 21.3, 21.4_
 
-- [ ] 14. Implement social graph modeling and trust systems
+- [x] 14. Implement social graph modeling and trust systems
   - Build dynamic social graph tracking for agent relationships and interactions
   - Create trust scoring and influence pattern analysis
   - Implement information flow tracking and collaboration metrics

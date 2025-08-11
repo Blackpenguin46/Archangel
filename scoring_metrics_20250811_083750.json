@@ -1,0 +1,537 @@
+{
+  "export_timestamp": "2025-08-11T08:37:50.925064",
+  "engine_id": "aa43e02e-4665-4c7d-939b-8a33913d8894",
+  "team_scores": {
+    "red": {
+      "total_score": 0.9816666666666667,
+      "category_scores": {
+        "attack_success": 0.16666666666666666,
+        "defense_success": 0.0,
+        "detection_speed": 0.0,
+        "containment_time": 0.0,
+        "stealth_maintenance": 0.07500000000000001,
+        "collaboration": 0.04000000000000001,
+        "learning_adaptation": 0.7
+      },
+      "metrics_count": 13,
+      "last_updated": "2025-08-11T08:37:49.921879",
+      "performance_trend": [
+        0.25,
+        0.33,
+        0.33,
+        0.32,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.23666666666666664,
+        0.2791666666666667,
+        0.27666666666666667,
+        0.27666666666666667,
+        0.27666666666666667,
+        0.27666666666666667,
+        0.9766666666666666,
+        0.9766666666666666,
+        0.9766666666666666,
+        0.9974999999999999,
+        1.0041666666666667,
+        1.0041666666666667,
+        1.0041666666666667,
+        0.9666666666666666,
+        0.9666666666666666,
+        0.9666666666666666,
+        0.9666666666666666,
+        0.9833333333333333,
+        0.9816666666666667,
+        0.9816666666666667,
+        0.9816666666666667,
+        0.9816666666666667,
+        0.9816666666666667
+      ]
+    },
+    "blue": {
+      "total_score": 1.3129166666666667,
+      "category_scores": {
+        "attack_success": 0.0,
+        "defense_success": 0.21875,
+        "detection_speed": 0.13666666666666666,
+        "containment_time": 0.11499999999999999,
+        "stealth_maintenance": 0.0,
+        "collaboration": 0.04250000000000001,
+        "learning_adaptation": 0.8
+      },
+      "metrics_count": 15,
+      "last_updated": "2025-08-11T08:37:49.921929",
+      "performance_trend": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.225,
+        0.385,
+        0.37875000000000003,
+        0.33875,
+        0.3408333333333333,
+        0.43083333333333335,
+        0.43083333333333335,
+        0.43083333333333335,
+        0.43083333333333335,
+        0.43083333333333335,
+        0.47583333333333333,
+        0.4733333333333334,
+        0.4733333333333334,
+        0.4733333333333334,
+        1.2733333333333334,
+        1.2733333333333334,
+        1.2733333333333334,
+        1.2733333333333334,
+        1.2681250000000002,
+        1.2847916666666668,
+        1.2847916666666668,
+        1.2891666666666668,
+        1.3116666666666668,
+        1.3116666666666668,
+        1.3116666666666668,
+        1.3116666666666668,
+        1.3104166666666668,
+        1.3129166666666667,
+        1.3129166666666667,
+        1.3129166666666667
+      ]
+    }
+  },
+  "metrics_history": [
+    {
+      "metric_id": "3289b5db-fc1c-41b5-b3c5-ec8dac1929c8",
+      "agent_id": "red_recon",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 1.0,
+      "timestamp": "2025-08-11T08:37:42.899216",
+      "context": {
+        "target": "corporate_network",
+        "attack_type": "network_scanning",
+        "duration": 45.0,
+        "stealth_score": 0.8
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "031d2e8f-ff09-4549-8197-11996e1c22ce",
+      "agent_id": "red_recon",
+      "team": "red",
+      "category": "stealth_maintenance",
+      "metric_type": "score",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:42.899316",
+      "context": {
+        "target": "corporate_network",
+        "attack_type": "network_scanning",
+        "duration": 45.0,
+        "stealth_score": 0.8
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "03eb96cd-a553-423c-ad66-cd74bc0e6c9b",
+      "agent_id": "red_exploit",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 1.0,
+      "timestamp": "2025-08-11T08:37:42.899423",
+      "context": {
+        "target": "web_application",
+        "attack_type": "sql_injection",
+        "duration": 120.0,
+        "stealth_score": 0.6
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "744d44f2-3be0-473a-bc39-b4a26b96ade6",
+      "agent_id": "red_exploit",
+      "team": "red",
+      "category": "stealth_maintenance",
+      "metric_type": "score",
+      "value": 0.6,
+      "timestamp": "2025-08-11T08:37:42.899954",
+      "context": {
+        "target": "web_application",
+        "attack_type": "sql_injection",
+        "duration": 120.0,
+        "stealth_score": 0.6
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "50375848-19e3-4e3c-b4ee-2ff01fc0f275",
+      "agent_id": "red_persist",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 0.0,
+      "timestamp": "2025-08-11T08:37:42.900163",
+      "context": {
+        "target": "domain_controller",
+        "attack_type": "privilege_escalation",
+        "duration": 300.0,
+        "stealth_score": 0.3
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "0dc5b38a-28d3-4ad8-aa0a-9f82cb1b12f6",
+      "agent_id": "blue_soc",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.9,
+      "timestamp": "2025-08-11T08:37:42.900684",
+      "context": {
+        "detected_agent": "red_recon",
+        "detection_time": 60.0,
+        "accuracy": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "1dbd81b6-064b-433c-8852-5da4ac2ed736",
+      "agent_id": "blue_soc",
+      "team": "blue",
+      "category": "detection_speed",
+      "metric_type": "timer",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:42.900724",
+      "context": {
+        "detected_agent": "red_recon",
+        "detection_time": 60.0,
+        "accuracy": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "e424779d-15dc-4db2-8ae8-e9aa09a80edf",
+      "agent_id": "blue_siem",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.85,
+      "timestamp": "2025-08-11T08:37:42.900869",
+      "context": {
+        "detected_agent": "red_exploit",
+        "detection_time": 180.0,
+        "accuracy": 0.85
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "ac95c096-1f7b-482f-afef-b733deecc375",
+      "agent_id": "blue_siem",
+      "team": "blue",
+      "category": "detection_speed",
+      "metric_type": "timer",
+      "value": 0.4,
+      "timestamp": "2025-08-11T08:37:42.901022",
+      "context": {
+        "detected_agent": "red_exploit",
+        "detection_time": 180.0,
+        "accuracy": 0.85
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "ea1de823-7d57-46d8-b480-8288efbd23f7",
+      "agent_id": "blue_firewall",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.9,
+      "timestamp": "2025-08-11T08:37:42.901085",
+      "context": {
+        "threat_id": "sql_injection_threat",
+        "containment_time": 240.0,
+        "effectiveness": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "340cb14f-62a5-43c2-9b57-09fc6ea208f8",
+      "agent_id": "blue_firewall",
+      "team": "blue",
+      "category": "containment_time",
+      "metric_type": "timer",
+      "value": 0.6,
+      "timestamp": "2025-08-11T08:37:42.901197",
+      "context": {
+        "threat_id": "sql_injection_threat",
+        "containment_time": 240.0,
+        "effectiveness": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "c15f907a-e62e-4d20-83ed-ea18ef47d6c0",
+      "agent_id": "red_recon",
+      "team": "red",
+      "category": "collaboration",
+      "metric_type": "score",
+      "value": 0.85,
+      "timestamp": "2025-08-11T08:37:43.903005",
+      "context": {
+        "collaboration_type": "intelligence_sharing",
+        "effectiveness": 0.85
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "cd726539-f7f6-429b-a986-faed704c9d0c",
+      "agent_id": "red_exploit",
+      "team": "red",
+      "category": "collaboration",
+      "metric_type": "score",
+      "value": 0.75,
+      "timestamp": "2025-08-11T08:37:43.903089",
+      "context": {
+        "collaboration_type": "coordinated_attack",
+        "effectiveness": 0.75
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "607a2bbb-3df4-49b8-a824-4452ec728170",
+      "agent_id": "blue_soc",
+      "team": "blue",
+      "category": "collaboration",
+      "metric_type": "score",
+      "value": 0.9,
+      "timestamp": "2025-08-11T08:37:43.903137",
+      "context": {
+        "collaboration_type": "incident_coordination",
+        "effectiveness": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "e7271825-e6aa-46ab-92dd-28c483a23062",
+      "agent_id": "blue_firewall",
+      "team": "blue",
+      "category": "collaboration",
+      "metric_type": "score",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:43.903183",
+      "context": {
+        "collaboration_type": "automated_response",
+        "effectiveness": 0.8
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "014356bb-1710-452c-8a4b-1f7582dc50ed",
+      "agent_id": "red_persist",
+      "team": "red",
+      "category": "learning_adaptation",
+      "metric_type": "score",
+      "value": 0.7,
+      "timestamp": "2025-08-11T08:37:44.905222",
+      "context": {
+        "learning_type": "failure_analysis",
+        "failed_technique": "privilege_escalation",
+        "new_strategy": "lateral_movement",
+        "confidence_improvement": 0.3
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "b2f681fd-3883-49be-8ede-7fd75f85802a",
+      "agent_id": "blue_siem",
+      "team": "blue",
+      "category": "learning_adaptation",
+      "metric_type": "score",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:44.905312",
+      "context": {
+        "learning_type": "pattern_recognition",
+        "improved_detection": "sql_injection_variants",
+        "accuracy_improvement": 0.15
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "d840b7f8-ef42-4084-be28-c6349860b4e9",
+      "agent_id": "red_recon",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 1.0,
+      "timestamp": "2025-08-11T08:37:45.907524",
+      "context": {
+        "target": "target_0",
+        "attack_type": "port_scanning",
+        "duration": 30.0,
+        "stealth_score": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "11d540ac-a67a-4a92-8bc9-e440987fecec",
+      "agent_id": "red_recon",
+      "team": "red",
+      "category": "stealth_maintenance",
+      "metric_type": "score",
+      "value": 0.9,
+      "timestamp": "2025-08-11T08:37:45.907668",
+      "context": {
+        "target": "target_0",
+        "attack_type": "port_scanning",
+        "duration": 30.0,
+        "stealth_score": 0.9
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "1636c224-5fb4-4a8a-a04f-f64e8678d5c2",
+      "agent_id": "blue_soc",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:46.409371",
+      "context": {
+        "detected_agent": "red_agent_1",
+        "detection_time": 45.0,
+        "accuracy": 0.8
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "76963247-b34c-48ae-b357-01224b331ae9",
+      "agent_id": "blue_soc",
+      "team": "blue",
+      "category": "detection_speed",
+      "metric_type": "timer",
+      "value": 0.85,
+      "timestamp": "2025-08-11T08:37:46.409707",
+      "context": {
+        "detected_agent": "red_agent_1",
+        "detection_time": 45.0,
+        "accuracy": 0.8
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "1ef77d6c-e420-4f17-b97d-c44814234ca9",
+      "agent_id": "red_exploit",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 0.0,
+      "timestamp": "2025-08-11T08:37:46.911544",
+      "context": {
+        "target": "target_2",
+        "attack_type": "buffer_overflow",
+        "duration": 180.0,
+        "stealth_score": 0.4
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "7d47b9b7-2f11-4323-a44d-cf0c3841a8c7",
+      "agent_id": "blue_firewall",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.95,
+      "timestamp": "2025-08-11T08:37:47.414939",
+      "context": {
+        "threat_id": "threat_3",
+        "containment_time": 60.0,
+        "effectiveness": 0.95
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "327203a4-bc8c-4ae3-a088-262c5e1c5d45",
+      "agent_id": "blue_firewall",
+      "team": "blue",
+      "category": "containment_time",
+      "metric_type": "timer",
+      "value": 0.9,
+      "timestamp": "2025-08-11T08:37:47.415087",
+      "context": {
+        "threat_id": "threat_3",
+        "containment_time": 60.0,
+        "effectiveness": 0.95
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "a12b58da-e2f4-45dd-8b49-ae8bac2455c0",
+      "agent_id": "red_persist",
+      "team": "red",
+      "category": "attack_success",
+      "metric_type": "score",
+      "value": 1.0,
+      "timestamp": "2025-08-11T08:37:47.916769",
+      "context": {
+        "target": "target_4",
+        "attack_type": "backdoor_installation",
+        "duration": 240.0,
+        "stealth_score": 0.7
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "0c95e3b6-ba2a-426e-b33c-c73ff4e87f2a",
+      "agent_id": "red_persist",
+      "team": "red",
+      "category": "stealth_maintenance",
+      "metric_type": "score",
+      "value": 0.7,
+      "timestamp": "2025-08-11T08:37:47.916824",
+      "context": {
+        "target": "target_4",
+        "attack_type": "backdoor_installation",
+        "duration": 240.0,
+        "stealth_score": 0.7
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "d0cdd573-1dc2-4298-8a40-5f9465a3c425",
+      "agent_id": "blue_siem",
+      "team": "blue",
+      "category": "defense_success",
+      "metric_type": "score",
+      "value": 0.85,
+      "timestamp": "2025-08-11T08:37:48.418388",
+      "context": {
+        "threat_id": "threat_5",
+        "containment_time": 120.0,
+        "effectiveness": 0.85
+      },
+      "confidence": 1.0
+    },
+    {
+      "metric_id": "c0d7d8b4-0058-4b76-a9ba-0d22b671d918",
+      "agent_id": "blue_siem",
+      "team": "blue",
+      "category": "containment_time",
+      "metric_type": "timer",
+      "value": 0.8,
+      "timestamp": "2025-08-11T08:37:48.418559",
+      "context": {
+        "threat_id": "threat_5",
+        "containment_time": 120.0,
+        "effectiveness": 0.85
+      },
+      "confidence": 1.0
+    }
+  ]
+}

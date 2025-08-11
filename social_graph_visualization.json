@@ -1,0 +1,462 @@
+{
+  "nodes": [
+    {
+      "team": "red",
+      "role": "reconnaissance",
+      "id": "red_recon_alpha",
+      "influence": {
+        "agent_id": "red_recon_alpha",
+        "centrality_score": 0.2222222222222222,
+        "betweenness_centrality": 0.0,
+        "closeness_centrality": 0.0,
+        "eigenvector_centrality": 5.047671308474291e-118,
+        "page_rank": 0.015000000000000003,
+        "influence_radius": 0,
+        "information_broker_score": 0.06666666666666667
+      }
+    },
+    {
+      "team": "red",
+      "role": "exploitation",
+      "id": "red_exploit_beta",
+      "influence": {
+        "agent_id": "red_exploit_beta",
+        "centrality_score": 0.5555555555555556,
+        "betweenness_centrality": 0.1388888888888889,
+        "closeness_centrality": 0.5625,
+        "eigenvector_centrality": 0.5000326345941905,
+        "page_rank": 0.20375410949167552,
+        "influence_radius": 0,
+        "information_broker_score": 0.2638888888888889
+      }
+    },
+    {
+      "team": "red",
+      "role": "persistence",
+      "id": "red_persist_gamma",
+      "influence": {
+        "agent_id": "red_persist_gamma",
+        "centrality_score": 0.5555555555555556,
+        "betweenness_centrality": 0.14583333333333331,
+        "closeness_centrality": 0.5,
+        "eigenvector_centrality": 0.707104201298079,
+        "page_rank": 0.33498719502208835,
+        "influence_radius": 0,
+        "information_broker_score": 0.26875
+      }
+    },
+    {
+      "team": "red",
+      "role": "exfiltration",
+      "id": "red_exfil_delta",
+      "influence": {
+        "agent_id": "red_exfil_delta",
+        "centrality_score": 0.2222222222222222,
+        "betweenness_centrality": 0.0,
+        "closeness_centrality": 0.34615384615384615,
+        "eigenvector_centrality": 0.4999709769424124,
+        "page_rank": 0.15736747754603886,
+        "influence_radius": 0,
+        "information_broker_score": 0.06666666666666667
+      }
+    },
+    {
+      "team": "red",
+      "role": "social_engineering",
+      "id": "red_social_epsilon",
+      "influence": {
+        "agent_id": "red_social_epsilon",
+        "centrality_score": 0.2222222222222222,
+        "betweenness_centrality": 0.0,
+        "closeness_centrality": 0.1111111111111111,
+        "eigenvector_centrality": 1.5344920777761808e-115,
+        "page_rank": 0.021375000000000005,
+        "influence_radius": 0,
+        "information_broker_score": 0.06666666666666667
+      }
+    },
+    {
+      "team": "blue",
+      "role": "soc_analyst",
+      "id": "blue_soc_alpha",
+      "influence": {
+        "agent_id": "blue_soc_alpha",
+        "centrality_score": 0.4444444444444444,
+        "betweenness_centrality": 0.1736111111111111,
+        "closeness_centrality": 0.2222222222222222,
+        "eigenvector_centrality": 8.409885447403846e-05,
+        "page_rank": 0.07709249891150191,
+        "influence_radius": 0,
+        "information_broker_score": 0.2548611111111111
+      }
+    },
+    {
+      "team": "blue",
+      "role": "firewall_admin",
+      "id": "blue_firewall_beta",
+      "influence": {
+        "agent_id": "blue_firewall_beta",
+        "centrality_score": 0.3333333333333333,
+        "betweenness_centrality": 0.13194444444444445,
+        "closeness_centrality": 0.2962962962962963,
+        "eigenvector_centrality": 0.00011470786057978571,
+        "page_rank": 0.07304997654059606,
+        "influence_radius": 0,
+        "information_broker_score": 0.1923611111111111
+      }
+    },
+    {
+      "team": "blue",
+      "role": "siem_operator",
+      "id": "blue_siem_gamma",
+      "influence": {
+        "agent_id": "blue_siem_gamma",
+        "centrality_score": 0.3333333333333333,
+        "betweenness_centrality": 0.048611111111111105,
+        "closeness_centrality": 0.17777777777777778,
+        "eigenvector_centrality": 6.16576517781543e-05,
+        "page_rank": 0.03684288194563667,
+        "influence_radius": 0,
+        "information_broker_score": 0.13402777777777775
+      }
+    },
+    {
+      "team": "blue",
+      "role": "incident_responder",
+      "id": "blue_incident_delta",
+      "influence": {
+        "agent_id": "blue_incident_delta",
+        "centrality_score": 0.3333333333333333,
+        "betweenness_centrality": 0.048611111111111105,
+        "closeness_centrality": 0.2962962962962963,
+        "eigenvector_centrality": 9.479980963534725e-05,
+        "page_rank": 0.049872631782325205,
+        "influence_radius": 0,
+        "information_broker_score": 0.13402777777777775
+      }
+    },
+    {
+      "team": "blue",
+      "role": "threat_hunter",
+      "id": "blue_threat_epsilon",
+      "influence": {
+        "agent_id": "blue_threat_epsilon",
+        "centrality_score": 0.3333333333333333,
+        "betweenness_centrality": 0.048611111111111105,
+        "closeness_centrality": 0.17777777777777778,
+        "eigenvector_centrality": 4.520473015443652e-05,
+        "page_rank": 0.030658228760137747,
+        "influence_radius": 0,
+        "information_broker_score": 0.13402777777777775
+      }
+    }
+  ],
+  "edges": [
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 13:55:37.436872",
+      "source": "red_recon_alpha",
+      "target": "red_exploit_beta",
+      "trust": {
+        "source_agent": "red_recon_alpha",
+        "target_agent": "red_exploit_beta",
+        "trust_value": 0.5180806065453094,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 13:55:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:00:37.436872",
+      "source": "red_recon_alpha",
+      "target": "red_social_epsilon",
+      "trust": {
+        "source_agent": "red_recon_alpha",
+        "target_agent": "red_social_epsilon",
+        "trust_value": 0.5181604175730278,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:00:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:05:37.436872",
+      "source": "red_exploit_beta",
+      "target": "red_persist_gamma",
+      "trust": {
+        "source_agent": "red_exploit_beta",
+        "target_agent": "red_persist_gamma",
+        "trust_value": 0.5232402428188871,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:05:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:10:37.436872",
+      "source": "red_persist_gamma",
+      "target": "red_exploit_beta",
+      "trust": {
+        "source_agent": "red_persist_gamma",
+        "target_agent": "red_exploit_beta",
+        "trust_value": 0.518320082283558,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:10:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:15:37.436872",
+      "source": "red_persist_gamma",
+      "target": "red_exfil_delta",
+      "trust": {
+        "source_agent": "red_persist_gamma",
+        "target_agent": "red_exfil_delta",
+        "trust_value": 0.5283999359690406,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:15:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:20:37.436872",
+      "source": "red_exfil_delta",
+      "target": "red_persist_gamma",
+      "trust": {
+        "source_agent": "red_exfil_delta",
+        "target_agent": "red_persist_gamma",
+        "trust_value": 0.5184798038778677,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:20:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:25:37.436872",
+      "source": "red_social_epsilon",
+      "target": "red_exploit_beta",
+      "trust": {
+        "source_agent": "red_social_epsilon",
+        "target_agent": "red_exploit_beta",
+        "trust_value": 0.4985596860128395,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:25:37.436872",
+        "interaction_count": 1,
+        "positive_interactions": 0,
+        "negative_interactions": 1
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:55:37.436982",
+      "source": "blue_soc_alpha",
+      "target": "blue_siem_gamma",
+      "trust": {
+        "source_agent": "blue_soc_alpha",
+        "target_agent": "blue_siem_gamma",
+        "trust_value": 0.5190392777317682,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:55:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:10:37.436982",
+      "source": "blue_soc_alpha",
+      "target": "blue_incident_delta",
+      "trust": {
+        "source_agent": "blue_soc_alpha",
+        "target_agent": "blue_incident_delta",
+        "trust_value": 0.5342792658311507,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:10:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:55:37.437035",
+      "source": "blue_soc_alpha",
+      "target": "red_exploit_beta",
+      "trust": {
+        "source_agent": "blue_soc_alpha",
+        "target_agent": "red_exploit_beta",
+        "trust_value": 0.44999999999812995,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:55:37.437035",
+        "interaction_count": 1,
+        "positive_interactions": 0,
+        "negative_interactions": 1
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:07:37.436982",
+      "source": "blue_firewall_beta",
+      "target": "blue_soc_alpha",
+      "trust": {
+        "source_agent": "blue_firewall_beta",
+        "target_agent": "blue_soc_alpha",
+        "trust_value": 0.5192312579527896,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:07:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 14:58:37.436982",
+      "source": "blue_siem_gamma",
+      "target": "blue_threat_epsilon",
+      "trust": {
+        "source_agent": "blue_siem_gamma",
+        "target_agent": "blue_threat_epsilon",
+        "trust_value": 0.5240872650940963,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 14:58:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:13:37.436982",
+      "source": "blue_siem_gamma",
+      "target": "blue_firewall_beta",
+      "trust": {
+        "source_agent": "blue_siem_gamma",
+        "target_agent": "blue_firewall_beta",
+        "trust_value": 0.4843272788404906,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:13:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 0,
+        "negative_interactions": 1
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:04:37.436982",
+      "source": "blue_incident_delta",
+      "target": "blue_firewall_beta",
+      "trust": {
+        "source_agent": "blue_incident_delta",
+        "target_agent": "blue_firewall_beta",
+        "trust_value": 0.524183255204059,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:04:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:01:37.436982",
+      "source": "blue_threat_epsilon",
+      "target": "blue_incident_delta",
+      "trust": {
+        "source_agent": "blue_threat_epsilon",
+        "target_agent": "blue_incident_delta",
+        "trust_value": 0.5291352575846772,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:01:37.436982",
+        "interaction_count": 1,
+        "positive_interactions": 1,
+        "negative_interactions": 0
+      }
+    },
+    {
+      "interaction_count": 1,
+      "last_interaction": "2025-08-11 15:55:37.437038",
+      "source": "blue_threat_epsilon",
+      "target": "red_persist_gamma",
+      "trust": {
+        "source_agent": "blue_threat_epsilon",
+        "target_agent": "red_persist_gamma",
+        "trust_value": 0.44999999999759566,
+        "confidence": 0.05,
+        "last_updated": "2025-08-11 15:55:37.437038",
+        "interaction_count": 1,
+        "positive_interactions": 0,
+        "negative_interactions": 1
+      }
+    }
+  ],
+  "communities": {
+    "community_1": [
+      "red_recon_alpha",
+      "red_exploit_beta",
+      "red_social_epsilon"
+    ],
+    "community_0": [
+      "red_persist_gamma",
+      "red_exfil_delta"
+    ],
+    "community_2": [
+      "blue_soc_alpha",
+      "blue_firewall_beta",
+      "blue_siem_gamma",
+      "blue_incident_delta",
+      "blue_threat_epsilon"
+    ]
+  },
+  "collaboration_metrics": {
+    "red_exploit_beta-red_persist_gamma": {
+      "participants": [
+        "red_exploit_beta",
+        "red_persist_gamma"
+      ],
+      "collaboration_strength": 0.13333333333333333,
+      "frequency": 0.6666666666666666,
+      "success_rate": 1.0,
+      "average_response_time": 300.0,
+      "information_flow_rate": 0.6666666666666666,
+      "task_completion_rate": 0.0
+    },
+    "red_exfil_delta-red_persist_gamma": {
+      "participants": [
+        "red_exfil_delta",
+        "red_persist_gamma"
+      ],
+      "collaboration_strength": 0.13333333333333333,
+      "frequency": 0.6666666666666666,
+      "success_rate": 1.0,
+      "average_response_time": 300.0,
+      "information_flow_rate": 0.6666666666666666,
+      "task_completion_rate": 1.0
+    }
+  },
+  "graph_stats": {
+    "node_count": 10,
+    "edge_count": 16,
+    "density": 0.17777777777777778,
+    "is_connected": true
+  }
+}

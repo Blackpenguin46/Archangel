@@ -15,6 +15,7 @@ import json
 
 from .base_agent import BaseAgent, AgentConfig, Team, Role, AgentStatus
 from .communication import MessageBus, AgentMessage, TeamMessage, MessageType, Priority
+from .scoring_engine import DynamicScoringEngine, DEFAULT_SCORING_CONFIG, ScoreCategory, MetricType
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,9 @@ class LangGraphCoordinator:
             'phase_transitions': 0
         }
         
+        # Scoring engine integration
+        self.scoring_engine: Optional[DynamicScoringEngine] = None
+        
         self.logger = logging.getLogger(__name__)
         self.running = False
     
@@ -148,6 +152,10 @@ class LangGraphCoordinator:
             
             # Start heartbeat monitoring
             asyncio.create_task(self._monitor_agent_heartbeats())
+            
+            # Initialize scoring engine
+            self.scoring_engine = DynamicScoringEngine(DEFAULT_SCORING_CONFIG)
+            await self.scoring_engine.initialize()
             
             self.running = True
             self.workflow_state = WorkflowState.PLANNING
@@ -606,9 +614,88 @@ class LangGraphCoordinator:
         else:
             self.coordination_metrics['average_workflow_duration'] = duration
     
+    async def record_agent_action(self, agent_id: str, action_type: str, 
+                                success: bool, context: Dict[str, Any]) -> None:
+        """Record agent action for scoring"""
+        if not self.scoring_engine or agent_id not in self.registered_agents:
+            return
+        
+        try:
+            registration = self.registered_agents[agent_id]
+            team = registration.agent.team
+            
+            # Map action types to scoring categories
+            if action_type in ["attack", "exploit", "reconnaissance"]:
+                if team == Team.RED:
+                    await self.scoring_engine.record_attack_success(
+                        agent_id=agent_id,
+                        target=context.get("target", "unknown"),
+                        attack_type=action_type,
+                        success=success,
+                        duration=context.get("duration", 60.0),
+                        stealth_score=context.get("stealth_score", 0.5)
+                    )
+            elif action_type in ["detection", "monitoring"]:
+                if team == Team.BLUE and success:
+                    await self.scoring_engine.record_detection_event(
+                        agent_id=agent_id,
+                        detected_agent=context.get("detected_agent", "unknown"),
+                        detection_time=context.get("detection_time", 60.0),
+                        accuracy=context.get("accuracy", 0.8)
+                    )
+            elif action_type in ["containment", "mitigation"]:
+                if team == Team.BLUE:
+                    await self.scoring_engine.record_containment_action(
+                        agent_id=agent_id,
+                        threat_id=context.get("threat_id", "unknown"),
+                        containment_time=context.get("containment_time", 120.0),
+                        effectiveness=context.get("effectiveness", 0.8)
+                    )
+            elif action_type == "collaboration":
+                await self.scoring_engine.record_collaboration_event(
+                    agent_id=agent_id,
+                    team=team,
+                    collaboration_type=context.get("collaboration_type", "general"),
+                    effectiveness=context.get("effectiveness", 0.7)
+                )
+            
+        except Exception as e:
+            self.logger.error(f"Failed to record agent action for scoring: {e}")
+    
+    async def get_current_scores(self) -> Dict[str, Any]:
+        """Get current team scores"""
+        if not self.scoring_engine:
+            return {"error": "Scoring engine not initialized"}
+        
+        try:
+            scores = await self.scoring_engine.get_current_scores()
+            return {
+                team.value: {
+                    "total_score": score.total_score,
+                    "category_scores": {cat.value: val for cat, val in score.category_scores.items()},
+                    "metrics_count": score.metrics_count,
+                    "last_updated": score.last_updated.isoformat()
+                }
+                for team, score in scores.items()
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get current scores: {e}")
+            return {"error": str(e)}
+    
+    async def get_performance_analysis(self) -> Dict[str, Any]:
+        """Get comprehensive performance analysis"""
+        if not self.scoring_engine:
+            return {"error": "Scoring engine not initialized"}
+        
+        try:
+            return await self.scoring_engine.get_performance_analysis()
+        except Exception as e:
+            self.logger.error(f"Failed to get performance analysis: {e}")
+            return {"error": str(e)}
+    
     def get_coordination_status(self) -> Dict[str, Any]:
         """Get current coordination status"""
-        return {
+        status = {
             'coordinator_id': self.coordinator_id,
             'running': self.running,
             'workflow_state': self.workflow_state.value,
@@ -619,8 +706,11 @@ class LangGraphCoordinator:
                 team.value: len(agents) 
                 for team, agents in self.team_assignments.items()
             },
-            'metrics': self.coordination_metrics
+            'metrics': self.coordination_metrics,
+            'scoring_enabled': self.scoring_engine is not None
         }
+        
+        return status
     
     async def shutdown(self) -> None:
         """Shutdown the coordinator"""
@@ -643,6 +733,10 @@ class LangGraphCoordinator:
             # Unregister all agents
             for agent_id in list(self.registered_agents.keys()):
                 await self.unregister_agent(agent_id)
+            
+            # Shutdown scoring engine
+            if self.scoring_engine:
+                await self.scoring_engine.shutdown()
             
             self.logger.info("LangGraph coordinator shutdown complete")
             

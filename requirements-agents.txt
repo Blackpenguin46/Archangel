@@ -31,6 +31,11 @@ chromadb>=0.4.0
 sentence-transformers>=2.2.0
 numpy>=1.24.0
 
+# Social graph analysis
+networkx>=3.0.0
+scipy>=1.10.0
+python-louvain>=0.16
+
 # Optional vector databases
 # weaviate-client>=3.20.0  # Uncomment if using Weaviate
 
