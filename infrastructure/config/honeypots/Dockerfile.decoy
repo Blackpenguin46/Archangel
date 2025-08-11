@@ -1,0 +1,35 @@
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    netcat-openbsd \
+    telnet \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /opt/decoy /var/log/honeypots
+
+# Copy decoy services script
+COPY decoy_services.py /opt/decoy/
+COPY fake_admin_panel.html /opt/honeypots/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir pyyaml requests
+
+# Create non-root user
+RUN useradd -r -s /bin/false decoy
+
+# Set permissions
+RUN chown -R decoy:decoy /opt/decoy /var/log/honeypots
+
+# Switch to non-root user
+USER decoy
+
+# Set working directory
+WORKDIR /opt/decoy
+
+# Expose ports
+EXPOSE 21 22 8080 3306
+
+# Run the decoy services
+CMD ["python", "decoy_services.py"]

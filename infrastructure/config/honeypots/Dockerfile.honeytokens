@@ -1,0 +1,34 @@
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /opt/honeytokens /var/log/honeypots /tmp/honeytokens /var/tmp/honeytokens
+
+# Copy honeytoken scripts
+COPY honeytokens.py /opt/honeytokens/
+COPY config.yaml /opt/honeytokens/config.yaml
+
+# Install Python dependencies
+RUN pip install --no-cache-dir pyyaml
+
+# Create non-root user
+RUN useradd -r -s /bin/false honeytokens
+
+# Set permissions
+RUN chown -R honeytokens:honeytokens /opt/honeytokens /var/log/honeypots /tmp/honeytokens /var/tmp/honeytokens
+
+# Create cron job for periodic honeytoken distribution
+RUN echo "*/30 * * * * /usr/local/bin/python /opt/honeytokens/honeytokens.py" | crontab -u honeytokens -
+
+# Switch to non-root user
+USER honeytokens
+
+# Set working directory
+WORKDIR /opt/honeytokens
+
+# Run initial honeytoken distribution and then start cron
+CMD python honeytokens.py && cron -f

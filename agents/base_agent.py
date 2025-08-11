@@ -174,6 +174,11 @@ class BaseAgent(ABC):
         # Logging
         self.logger = logging.getLogger(f"agent.{self.agent_id}")
         
+        # Reasoning system components (initialized in _initialize_llm)
+        self.reasoning_system = None
+        self.world_state = None
+        self.last_decision = None
+        
     async def initialize(self) -> None:
         """Initialize the agent and prepare for operation"""
         try:
@@ -199,8 +204,28 @@ class BaseAgent(ABC):
     
     async def _initialize_llm(self) -> None:
         """Initialize LLM interface for reasoning"""
-        # This will be implemented with actual LLM integration
-        self.logger.debug("LLM interface initialized")
+        from .llm_interface import LLMConfig, LLMProvider
+        from .reasoning_integration import IntegratedReasoningSystem, ReasoningContext
+        from .planning import WorldState
+        
+        # Initialize LLM configuration
+        llm_config = LLMConfig(
+            provider=LLMProvider.OPENAI,
+            model=self.config.llm_model,
+            api_key=None,  # Will be set from environment
+            max_tokens=2048,
+            temperature=0.7
+        )
+        
+        # Initialize integrated reasoning system
+        self.reasoning_system = IntegratedReasoningSystem(llm_config)
+        
+        # Initialize world state for planning
+        self.world_state = self.reasoning_system.planning_engine.get_world_state_template(
+            self.team.value
+        )
+        
+        self.logger.debug("LLM interface and reasoning system initialized")
     
     async def _initialize_memory(self) -> None:
         """Initialize memory systems"""
@@ -238,7 +263,6 @@ class BaseAgent(ABC):
             self.logger.error(f"Failed to perceive environment: {e}")
             raise
     
-    @abstractmethod
     async def reason_about_situation(self, state: EnvironmentState) -> ReasoningResult:
         """
         Use LLM reasoning to analyze the situation and determine appropriate actions
@@ -249,9 +273,48 @@ class BaseAgent(ABC):
         Returns:
             ReasoningResult: Analysis and reasoning about the situation
         """
-        pass
+        from .reasoning_integration import ReasoningContext
+        
+        # Create reasoning context
+        context = ReasoningContext(
+            agent_id=self.agent_id,
+            team=self.team.value,
+            role=self.role.value,
+            environment_state={
+                "network_topology": state.network_topology,
+                "active_services": state.active_services,
+                "security_alerts": state.security_alerts,
+                "system_logs": state.system_logs,
+                "agent_positions": state.agent_positions,
+                "threat_level": state.threat_level
+            },
+            agent_memory={"experiences": self.experiences[-10:]},  # Last 10 experiences
+            available_tools=self.available_tools,
+            constraints=self.constraints,
+            objectives=self.objectives,
+            world_state=self.world_state
+        )
+        
+        # Make integrated decision
+        decision = await self.reasoning_system.make_decision(context)
+        
+        # Convert to ReasoningResult format
+        reasoning_result = ReasoningResult(
+            situation_assessment=decision.reasoning_result.get("situation_assessment", ""),
+            threat_analysis=decision.reasoning_result.get("threat_analysis", ""),
+            opportunity_identification=decision.reasoning_result.get("opportunity_identification", []),
+            risk_assessment=decision.reasoning_result.get("risk_assessment", {}),
+            recommended_actions=decision.reasoning_result.get("recommended_actions", []),
+            confidence_score=decision.confidence_score,
+            reasoning_chain=decision.reasoning_result.get("reasoning_chain", []),
+            alternatives_considered=decision.reasoning_result.get("alternatives_considered", [])
+        )
+        
+        # Store decision for later use
+        self.last_decision = decision
+        
+        return reasoning_result
     
-    @abstractmethod
     async def plan_actions(self, reasoning: ReasoningResult) -> ActionPlan:
         """
         Create an action plan based on reasoning results
@@ -262,7 +325,58 @@ class BaseAgent(ABC):
         Returns:
             ActionPlan: Planned actions to execute
         """
-        pass
+        # Use the selected action from the last decision
+        if hasattr(self, 'last_decision') and self.last_decision.selected_action:
+            selected_action = self.last_decision.selected_action
+            
+            action_plan = ActionPlan(
+                primary_action=selected_action.name,
+                action_type=selected_action.action_type.value,
+                target=selected_action.parameters.get("target"),
+                parameters=selected_action.parameters,
+                expected_outcome=f"Execute {selected_action.name} successfully",
+                success_criteria=[
+                    "Action completes without errors",
+                    "Expected effects are achieved",
+                    "No safety violations occur"
+                ],
+                fallback_actions=reasoning.alternatives_considered[:3],
+                estimated_duration=selected_action.duration,
+                risk_level=self._assess_risk_level(reasoning.risk_assessment)
+            )
+            
+            return action_plan
+        else:
+            # Fallback: create plan from reasoning recommendations
+            if reasoning.recommended_actions:
+                primary_action = reasoning.recommended_actions[0]
+                
+                action_plan = ActionPlan(
+                    primary_action=primary_action,
+                    action_type="general",
+                    target=None,
+                    parameters={},
+                    expected_outcome=f"Execute {primary_action}",
+                    success_criteria=["Action completes successfully"],
+                    fallback_actions=reasoning.recommended_actions[1:3],
+                    estimated_duration=30.0,
+                    risk_level=self._assess_risk_level(reasoning.risk_assessment)
+                )
+                
+                return action_plan
+            else:
+                # No actions recommended - create idle plan
+                return ActionPlan(
+                    primary_action="idle",
+                    action_type="maintenance",
+                    target=None,
+                    parameters={},
+                    expected_outcome="Maintain current state",
+                    success_criteria=["No errors occur"],
+                    fallback_actions=[],
+                    estimated_duration=5.0,
+                    risk_level="low"
+                )
     
     @abstractmethod
     async def execute_action(self, action: ActionPlan) -> ActionResult:
@@ -394,6 +508,21 @@ class BaseAgent(ABC):
             
         except Exception as e:
             self.logger.error(f"Error during agent shutdown: {e}")
+    
+    def _assess_risk_level(self, risk_assessment: Dict[str, float]) -> str:
+        """Assess overall risk level from risk assessment scores"""
+        if not risk_assessment:
+            return "low"
+        
+        # Calculate average risk score
+        avg_risk = sum(risk_assessment.values()) / len(risk_assessment.values())
+        
+        if avg_risk >= 0.7:
+            return "high"
+        elif avg_risk >= 0.4:
+            return "medium"
+        else:
+            return "low"
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(id={self.agent_id}, team={self.team.value}, role={self.role.value})>"

@@ -1,0 +1,36 @@
+# Cowrie User Database - Fake credentials for honeypot
+# Format: username:uid:password
+root:0:x:root
+admin:0:x:admin
+administrator:0:x:password
+guest:1000:x:guest
+user:1001:x:user
+test:1002:x:test
+oracle:1003:x:oracle
+postgres:1004:x:postgres
+mysql:1005:x:mysql
+ftp:1006:x:ftp
+www-data:1007:x:www-data
+backup:1008:x:backup
+service:1009:x:service
+support:1010:x:support123
+manager:1011:x:manager
+operator:1012:x:operator
+developer:1013:x:dev123
+sysadmin:1014:x:sysadmin
+dbadmin:1015:x:dbadmin
+webadmin:1016:x:webadmin
+ftpuser:1017:x:ftpuser
+mailuser:1018:x:mailuser
+testuser:1019:x:testuser
+demo:1020:x:demo
+temp:1021:x:temp123
+student:1022:x:student
+teacher:1023:x:teacher
+sales:1024:x:sales123
+marketing:1025:x:marketing
+hr:1026:x:hr123
+finance:1027:x:finance
+it:1028:x:it123
+security:1029:x:security
+audit:1030:x:audit123

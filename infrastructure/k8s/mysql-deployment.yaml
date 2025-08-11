@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-vulnerable
+  namespace: archangel-enterprise
+  labels:
+    app: mysql-vulnerable
+    tier: database
+    zone: internal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-vulnerable
+  template:
+    metadata:
+      labels:
+        app: mysql-vulnerable
+        tier: database
+        zone: internal
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root123"
+        - name: MYSQL_DATABASE
+          value: "wordpress"
+        - name: MYSQL_USER
+          value: "wordpress"
+        - name: MYSQL_PASSWORD
+          value: "vulnerable123"
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-config
+          mountPath: /etc/mysql/conf.d/vulnerable.cnf
+          subPath: vulnerable.cnf
+        - name: mysql-init
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+      - name: mysql-config
+        configMap:
+          name: mysql-config
+      - name: mysql-init
+        configMap:
+          name: mysql-init
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: archangel-enterprise
+  labels:
+    app: mysql-vulnerable
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+    name: mysql
+  selector:
+    app: mysql-vulnerable
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: archangel-enterprise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: archangel-enterprise
+data:
+  vulnerable.cnf: |
+    [mysqld]
+    bind-address = 0.0.0.0
+    port = 3306
+    skip-name-resolve
+    local-infile = 1
+    secure-file-priv = ""
+    general_log = 1
+    general_log_file = /var/log/mysql/general.log
+    log_error = /var/log/mysql/error.log
+    slow_query_log = 1
+    slow_query_log_file = /var/log/mysql/slow.log
+    long_query_time = 2
+    sql_mode = ""
+    old_passwords = 1
+    max_connections = 200
+    innodb_buffer_pool_size = 128M
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init
+  namespace: archangel-enterprise
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS wordpress;
+    CREATE DATABASE IF NOT EXISTS opencart;
+    CREATE DATABASE IF NOT EXISTS corporate;
+    
+    CREATE USER 'wordpress'@'%' IDENTIFIED BY 'vulnerable123';
+    CREATE USER 'opencart'@'%' IDENTIFIED BY 'opencart123';
+    CREATE USER 'admin'@'%' IDENTIFIED BY 'admin';
+    CREATE USER 'guest'@'%' IDENTIFIED BY '';
+    
+    GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpress'@'%';
+    GRANT ALL PRIVILEGES ON opencart.* TO 'opencart'@'%';
+    GRANT ALL PRIVILEGES ON corporate.* TO 'admin'@'%';
+    GRANT SELECT ON *.* TO 'guest'@'%';
+    
+    USE corporate;
+    CREATE TABLE employees (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50),
+        password VARCHAR(50),
+        email VARCHAR(100),
+        ssn VARCHAR(11),
+        salary DECIMAL(10,2)
+    );
+    
+    INSERT INTO employees VALUES 
+    (1, 'admin', 'password123', 'admin@company.com', '123-45-6789', 75000.00),
+    (2, 'jdoe', 'qwerty', 'john.doe@company.com', '987-65-4321', 65000.00),
+    (3, 'msmith', 'password', 'mary.smith@company.com', '555-12-3456', 70000.00);
+    
+    CREATE TABLE financial_data (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        account_number VARCHAR(20),
+        balance DECIMAL(15,2),
+        customer_name VARCHAR(100)
+    );
+    
+    INSERT INTO financial_data VALUES
+    (1, '1234567890', 50000.00, 'John Doe'),
+    (2, '0987654321', 75000.00, 'Mary Smith'),
+    (3, '5555555555', 100000.00, 'Admin User');
+    
+    FLUSH PRIVILEGES;

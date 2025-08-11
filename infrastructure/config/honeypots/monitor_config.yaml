@@ -1,0 +1,241 @@
+# Honeypot Monitor Configuration
+
+monitoring:
+  poll_interval: 30  # seconds
+  log_paths:
+    cowrie: "/cowrie/log/cowrie.json"
+    dionaea: "/opt/dionaea/var/log/dionaea/dionaea.json"
+    glastopf: "/opt/glastopf/log/glastopf.log"
+    decoy_services: "/var/log/honeypots/"
+  
+  alert_thresholds:
+    high_frequency: 10    # alerts per minute for high frequency attack
+    brute_force: 5        # failed login attempts to trigger brute force alert
+    port_scan: 20         # number of ports scanned to trigger port scan alert
+    connection_burst: 15  # connections per minute to trigger burst alert
+
+database:
+  path: "/var/lib/honeypots/monitor.db"
+  retention_days: 30
+
+alerting:
+  enabled: true
+  channels: ["syslog", "webhook", "database"]
+  
+  webhook:
+    url: "http://blue-team-coordinator:8080/honeypot-alerts"
+    timeout: 10
+    retry_attempts: 3
+    retry_delay: 5
+  
+  syslog:
+    facility: "local0"
+    severity_mapping:
+      low: "info"
+      medium: "warning"
+      high: "error"
+      critical: "critical"
+  
+  email:
+    enabled: false
+    smtp_server: "mail.corporate.local"
+    smtp_port: 587
+    use_tls: true
+    username: "honeypot@corporate.local"
+    password: "HoneyPot123!"
+    from_address: "honeypot@corporate.local"
+    to_addresses:
+      - "soc@corporate.local"
+      - "security@corporate.local"
+
+threat_intel:
+  enabled: true
+  cache_duration: 3600  # seconds
+  sources:
+    - name: "local_blacklist"
+      type: "file"
+      path: "/opt/honeypots/threat_intel/malicious_ips.txt"
+    - name: "tor_exits"
+      type: "file"
+      path: "/opt/honeypots/threat_intel/tor_exits.txt"
+    - name: "known_scanners"
+      type: "file"
+      path: "/opt/honeypots/threat_intel/scanners.txt"
+  
+  enrichment:
+    geolocation: true
+    reputation_check: true
+    asn_lookup: true
+
+pattern_detection:
+  enabled: true
+  min_events: 3
+  time_window: 300  # seconds (5 minutes)
+  confidence_threshold: 0.7
+  
+  patterns:
+    brute_force:
+      enabled: true
+      min_attempts: 5
+      time_window: 300
+      same_source: true
+    
+    port_scan:
+      enabled: true
+      min_ports: 10
+      time_window: 60
+      same_source: true
+    
+    distributed_attack:
+      enabled: true
+      min_sources: 5
+      same_target: true
+      time_window: 600
+    
+    credential_stuffing:
+      enabled: true
+      min_attempts: 10
+      different_usernames: true
+      time_window: 300
+
+# MITRE ATT&CK mapping for different attack types
+mitre_mapping:
+  ssh_brute_force: ["T1110.001"]  # Brute Force: Password Guessing
+  ftp_brute_force: ["T1110.001"]
+  web_exploit: ["T1190"]          # Exploit Public-Facing Application
+  port_scan: ["T1046"]            # Network Service Scanning
+  credential_stuffing: ["T1110.004"]  # Brute Force: Credential Stuffing
+  malware_upload: ["T1105"]       # Ingress Tool Transfer
+  command_injection: ["T1059"]    # Command and Scripting Interpreter
+  sql_injection: ["T1190"]        # Exploit Public-Facing Application
+  directory_traversal: ["T1083"]  # File and Directory Discovery
+
+# Severity scoring rules
+severity_rules:
+  factors:
+    source_reputation:
+      malicious_ip: +2
+      known_scanner: +1
+      tor_exit: +1
+      clean_ip: 0
+    
+    attack_type:
+      brute_force: +1
+      exploit: +2
+      malware: +3
+      command_injection: +3
+      data_exfiltration: +3
+    
+    frequency:
+      single: 0
+      multiple: +1
+      burst: +2
+      sustained: +3
+    
+    success:
+      failed_attempt: 0
+      successful_login: +2
+      successful_exploit: +3
+  
+  thresholds:
+    low: 0-2
+    medium: 3-5
+    high: 6-8
+    critical: 9+
+
+# Blue Team integration settings
+blue_team_integration:
+  enabled: true
+  coordinator_endpoint: "http://blue-team-coordinator:8080"
+  
+  alert_routing:
+    soc_analyst:
+      - "brute_force"
+      - "successful_login"
+      - "web_exploit"
+    
+    firewall_configurator:
+      - "port_scan"
+      - "distributed_attack"
+      - "high_frequency"
+    
+    siem_integrator:
+      - "pattern_detected"
+      - "malware_upload"
+      - "command_injection"
+    
+    incident_response:
+      - "successful_exploit"
+      - "data_exfiltration"
+      - "critical_severity"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  handlers:
+    file:
+      enabled: true
+      path: "/var/log/honeypots/monitor.log"
+      max_size: "10MB"
+      backup_count: 5
+    
+    console:
+      enabled: true
+      level: "INFO"
+    
+    syslog:
+      enabled: true
+      facility: "local0"
+
+# Performance and resource limits
+performance:
+  max_alerts_per_minute: 100
+  max_memory_usage: "512MB"
+  alert_queue_size: 1000
+  worker_threads: 4
+  
+  rate_limiting:
+    enabled: true
+    max_alerts_per_ip: 50  # per minute
+    burst_threshold: 20
+    cooldown_period: 300   # seconds
+
+# Honeypot service configurations
+honeypot_configs:
+  cowrie:
+    enabled: true
+    log_format: "json"
+    alert_on:
+      - "login_attempt"
+      - "command_execution"
+      - "file_download"
+      - "session_start"
+  
+  dionaea:
+    enabled: true
+    log_format: "json"
+    alert_on:
+      - "connection_attempt"
+      - "malware_download"
+      - "exploit_attempt"
+  
+  glastopf:
+    enabled: true
+    log_format: "text"
+    alert_on:
+      - "web_attack"
+      - "vulnerability_probe"
+      - "injection_attempt"
+  
+  decoy_services:
+    enabled: true
+    services:
+      - "ssh"
+      - "ftp"
+      - "web_admin"
+      - "database"
+    alert_on:
+      - "connection_attempt"
+      - "authentication_attempt"

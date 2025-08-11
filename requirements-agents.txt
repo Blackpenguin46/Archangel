@@ -26,6 +26,14 @@ dataclasses-json>=0.6.0
 # Cryptography for secure communication
 cryptography>=41.0.0
 
+# Vector databases and embeddings
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+
+# Optional vector databases
+# weaviate-client>=3.20.0  # Uncomment if using Weaviate
+
 # Development tools
 black>=23.0.0
 flake8>=6.0.0

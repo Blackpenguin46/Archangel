@@ -1,0 +1,39 @@
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /opt/monitor /var/log/honeypots /var/lib/honeypots /opt/honeypots/threat_intel
+
+# Copy monitor scripts
+COPY honeypot_monitor.py /opt/monitor/
+COPY monitor_config.yaml /opt/monitor/config.yaml
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    pyyaml \
+    requests \
+    sqlite3
+
+# Create threat intelligence files
+RUN echo "# Malicious IPs" > /opt/honeypots/threat_intel/malicious_ips.txt && \
+    echo "# Known scanners" > /opt/honeypots/threat_intel/scanners.txt && \
+    echo "# Tor exit nodes" > /opt/honeypots/threat_intel/tor_exits.txt
+
+# Create non-root user
+RUN useradd -r -s /bin/false monitor
+
+# Set permissions
+RUN chown -R monitor:monitor /opt/monitor /var/log/honeypots /var/lib/honeypots /opt/honeypots
+
+# Switch to non-root user
+USER monitor
+
+# Set working directory
+WORKDIR /opt/monitor
+
+# Run the honeypot monitor
+CMD ["python", "honeypot_monitor.py"]

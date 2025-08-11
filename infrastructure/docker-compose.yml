@@ -1,0 +1,375 @@
+version: '3.8'
+
+services:
+  # Frontend Layer - DMZ Zone (VLAN 10)
+  nginx-lb:
+    image: nginx:alpine
+    container_name: nginx-loadbalancer
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/ssl:/etc/nginx/ssl
+    networks:
+      dmz_network:
+        ipv4_address: 192.168.10.10
+    depends_on:
+      - wordpress
+      - opencart
+    restart: unless-stopped
+
+  wordpress:
+    image: wordpress:5.8-apache
+    container_name: wordpress-vulnerable
+    environment:
+      WORDPRESS_DB_HOST: mysql-backend
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: vulnerable123
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - ./config/wordpress/vulnerable-plugins:/var/www/html/wp-content/plugins/vulnerable
+      - wordpress_data:/var/www/html
+    networks:
+      dmz_network:
+        ipv4_address: 192.168.10.20
+      internal_network:
+    depends_on:
+      - mysql-backend
+    restart: unless-stopped
+
+  opencart:
+    image: opencart/opencart:3.0.3.8
+    container_name: opencart-vulnerable
+    environment:
+      DB_HOSTNAME: mysql-backend
+      DB_USERNAME: opencart
+      DB_PASSWORD: opencart123
+      DB_DATABASE: opencart
+    volumes:
+      - opencart_data:/var/www/html
+    networks:
+      dmz_network:
+        ipv4_address: 192.168.10.30
+      internal_network:
+    depends_on:
+      - mysql-backend
+    restart: unless-stopped
+
+  # Backend Services - Internal Zone (VLAN 20)
+  mysql-backend:
+    image: mysql:5.7
+    container_name: mysql-vulnerable
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: vulnerable123
+    volumes:
+      - ./config/mysql/vulnerable.cnf:/etc/mysql/conf.d/vulnerable.cnf
+      - mysql_data:/var/lib/mysql
+      - ./config/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      internal_network:
+        ipv4_address: 192.168.20.10
+    ports:
+      - "3306:3306"  # Intentionally exposed for vulnerability
+    restart: unless-stopped
+
+  postgresql-backend:
+    image: postgres:12
+    container_name: postgresql-vulnerable
+    environment:
+      POSTGRES_DB: corporate
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_HOST_AUTH_METHOD: trust  # Vulnerable configuration
+    volumes:
+      - ./config/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      internal_network:
+        ipv4_address: 192.168.20.20
+    ports:
+      - "5432:5432"  # Intentionally exposed
+    restart: unless-stopped
+
+  file-server:
+    image: dperson/samba
+    container_name: smb-fileserver
+    environment:
+      USERID: 1000
+      GROUPID: 1000
+    command: >
+      -u "admin;admin123"
+      -u "guest;guest"
+      -s "public;/shared;yes;no;no;all;admin,guest"
+      -s "confidential;/confidential;yes;no;no;admin;admin"
+    volumes:
+      - ./shared:/shared
+      - ./confidential:/confidential
+    networks:
+      internal_network:
+        ipv4_address: 192.168.20.30
+    ports:
+      - "139:139"
+      - "445:445"
+    restart: unless-stopped
+
+  mail-server:
+    image: mailhog/mailhog
+    container_name: mail-server
+    networks:
+      internal_network:
+        ipv4_address: 192.168.20.40
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    restart: unless-stopped
+
+  # Vulnerable Application Servers
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: dvwa-vulnerable
+    networks:
+      internal_network:
+        ipv4_address: 192.168.20.50
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  # Network Security Layer
+  suricata-ids:
+    image: jasonish/suricata:latest
+    container_name: suricata-ids
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    volumes:
+      - ./config/suricata/suricata.yaml:/etc/suricata/suricata.yaml
+      - ./config/suricata/rules:/var/lib/suricata/rules
+      - suricata_logs:/var/log/suricata
+    command: suricata -c /etc/suricata/suricata.yaml -i docker0
+    restart: unless-stopped
+
+  # Logging Infrastructure - Management Zone (VLAN 40)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      management_network:
+        ipv4_address: 192.168.40.10
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    container_name: logstash
+    volumes:
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+    networks:
+      management_network:
+        ipv4_address: 192.168.40.20
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    networks:
+      management_network:
+        ipv4_address: 192.168.40.30
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.15.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./config/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - suricata_logs:/var/log/suricata:ro
+      - honeypot_logs:/var/log/honeypots:ro
+    networks:
+      management_network:
+        ipv4_address: 192.168.40.40
+    depends_on:
+      - logstash
+    restart: unless-stopped
+
+  # Deception Zone - Honeypots (VLAN 50)
+  cowrie-ssh:
+    image: cowrie/cowrie:latest
+    container_name: cowrie-ssh-honeypot
+    volumes:
+      - ./config/honeypots/cowrie.cfg:/cowrie/cowrie.cfg
+      - ./config/honeypots/userdb.txt:/cowrie/userdb.txt
+      - cowrie_logs:/cowrie/log
+      - cowrie_downloads:/cowrie/downloads
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.10
+    ports:
+      - "2222:2222"  # SSH honeypot
+      - "2323:2323"  # Telnet honeypot
+    restart: unless-stopped
+
+  dionaea-malware:
+    image: dinotools/dionaea:latest
+    container_name: dionaea-malware-honeypot
+    volumes:
+      - ./config/honeypots/dionaea.cfg:/opt/dionaea/etc/dionaea/dionaea.cfg
+      - dionaea_logs:/opt/dionaea/var/log/dionaea
+      - dionaea_binaries:/opt/dionaea/var/dionaea/binaries
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.20
+    ports:
+      - "21:21"     # FTP
+      - "80:80"     # HTTP
+      - "135:135"   # RPC
+      - "445:445"   # SMB
+      - "1433:1433" # MSSQL
+      - "3306:3306" # MySQL
+      - "5060:5060" # SIP
+    restart: unless-stopped
+
+  glastopf-web:
+    image: mushorg/glastopf:latest
+    container_name: glastopf-web-honeypot
+    volumes:
+      - ./config/honeypots/glastopf.cfg:/opt/glastopf/glastopf.cfg
+      - glastopf_logs:/opt/glastopf/log
+      - glastopf_data:/opt/glastopf/data
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.30
+    ports:
+      - "8080:80"   # Web honeypot
+    restart: unless-stopped
+
+  decoy-services:
+    build:
+      context: ./config/honeypots
+      dockerfile: Dockerfile.decoy
+    container_name: decoy-services
+    volumes:
+      - ./config/honeypots/decoy_services.py:/opt/decoy/decoy_services.py
+      - ./config/honeypots/fake_admin_panel.html:/opt/honeypots/fake_admin_panel.html
+      - honeypot_logs:/var/log/honeypots
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.40
+    ports:
+      - "2122:21"   # Fake FTP
+      - "2223:22"   # Fake SSH
+      - "8081:8080" # Fake Admin Panel
+      - "3307:3306" # Fake MySQL
+    restart: unless-stopped
+
+  honeytoken-distributor:
+    build:
+      context: ./config/honeypots
+      dockerfile: Dockerfile.honeytokens
+    container_name: honeytoken-distributor
+    volumes:
+      - ./config/honeypots/honeytokens.py:/opt/honeytokens/honeytokens.py
+      - ./config/honeypots/config.yaml:/opt/honeytokens/config.yaml
+      - ./shared:/shared
+      - ./confidential:/confidential
+      - honeypot_logs:/var/log/honeypots
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.50
+    restart: unless-stopped
+
+  honeypot-monitor:
+    build:
+      context: ./config/honeypots
+      dockerfile: Dockerfile.monitor
+    container_name: honeypot-monitor
+    volumes:
+      - ./config/honeypots/honeypot_monitor.py:/opt/monitor/honeypot_monitor.py
+      - ./config/honeypots/monitor_config.yaml:/opt/monitor/config.yaml
+      - cowrie_logs:/cowrie/log:ro
+      - dionaea_logs:/opt/dionaea/var/log/dionaea:ro
+      - glastopf_logs:/opt/glastopf/log:ro
+      - honeypot_logs:/var/log/honeypots
+      - honeypot_db:/var/lib/honeypots
+    networks:
+      deception_network:
+        ipv4_address: 192.168.50.60
+      management_network:
+    depends_on:
+      - cowrie-ssh
+      - dionaea-malware
+      - glastopf-web
+      - decoy-services
+    restart: unless-stopped
+
+networks:
+  dmz_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.10.0/24
+          gateway: 192.168.10.1
+  
+  internal_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.20.0/24
+          gateway: 192.168.20.1
+  
+  management_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.40.0/24
+          gateway: 192.168.40.1
+  
+  deception_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.50.0/24
+          gateway: 192.168.50.1
+
+volumes:
+  wordpress_data:
+  opencart_data:
+  mysql_data:
+  postgresql_data:
+  elasticsearch_data:
+  suricata_logs:
+  cowrie_logs:
+  cowrie_downloads:
+  dionaea_logs:
+  dionaea_binaries:
+  glastopf_logs:
+  glastopf_data:
+  honeypot_logs:
+  honeypot_db:

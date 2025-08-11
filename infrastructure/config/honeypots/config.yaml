@@ -1,0 +1,158 @@
+# Honeytoken Configuration
+
+credentials:
+  usernames:
+    - "admin"
+    - "administrator" 
+    - "root"
+    - "service"
+    - "backup"
+    - "test"
+    - "oracle"
+    - "postgres"
+    - "mysql"
+    - "ftp"
+    - "www-data"
+    - "support"
+    - "manager"
+    - "operator"
+    - "developer"
+    - "sysadmin"
+    - "dbadmin"
+    - "webadmin"
+    - "ftpuser"
+    - "mailuser"
+    - "demo"
+    - "temp"
+    - "student"
+    - "teacher"
+    - "sales"
+    - "marketing"
+    - "hr"
+    - "finance"
+    - "it"
+    - "security"
+    - "audit"
+
+  domains:
+    - "corporate.local"
+    - "company.com"
+    - "internal.net"
+    - "corp.local"
+    - "enterprise.local"
+    - "office.local"
+
+  password_patterns:
+    - "Password123!"
+    - "Admin2024"
+    - "Service@123"
+    - "Backup!@#"
+    - "Corporate123"
+    - "Welcome123!"
+    - "Summer2024!"
+    - "Winter2024!"
+    - "Company@123"
+    - "P@ssw0rd123"
+    - "Admin@2024"
+    - "Secret123!"
+    - "Manager@123"
+    - "Support2024!"
+    - "Database123"
+
+documents:
+  types:
+    - "passwords.txt"
+    - "config.ini"
+    - "database.conf"
+    - "api_keys.json"
+    - "credentials.txt"
+    - "backup_config.txt"
+    - "server_list.txt"
+    - "network_diagram.pdf"
+    - "admin_notes.txt"
+    - "deployment_keys.txt"
+    - "service_accounts.csv"
+    - "database_backup.sql"
+
+  locations:
+    - "/tmp"
+    - "/var/tmp"
+    - "/home/admin"
+    - "/opt/backup"
+    - "/etc/backup"
+    - "/var/backup"
+    - "/home/service"
+    - "/opt/config"
+    - "/var/config"
+    - "/usr/local/etc"
+
+api_keys:
+  services:
+    - "aws"
+    - "azure"
+    - "gcp"
+    - "github"
+    - "gitlab"
+    - "slack"
+    - "jira"
+    - "confluence"
+    - "docker"
+    - "kubernetes"
+    - "terraform"
+    - "ansible"
+    - "jenkins"
+    - "sonarqube"
+    - "newrelic"
+    - "datadog"
+    - "splunk"
+    - "elastic"
+
+  key_length: 32
+
+certificates:
+  subjects:
+    - "CN=admin"
+    - "CN=service"
+    - "CN=backup"
+    - "CN=database"
+    - "CN=web-server"
+    - "CN=mail-server"
+    - "CN=file-server"
+    - "CN=corporate.local"
+    - "CN=*.corporate.local"
+    - "CN=internal.company.com"
+
+  key_sizes:
+    - 2048
+    - 4096
+
+# Distribution settings
+distribution:
+  target_paths:
+    - "/tmp/honeytokens"
+    - "/var/tmp/honeytokens"
+    - "/shared/honeytokens"
+    - "/confidential/honeytokens"
+
+  schedule:
+    enabled: true
+    interval: 1800  # 30 minutes
+    randomize: true
+    max_tokens_per_location: 20
+
+# Monitoring settings
+monitoring:
+  enabled: true
+  log_file: "/var/log/honeytokens/access.log"
+  alert_threshold: 1  # Alert on any access
+  notification_channels:
+    - "syslog"
+    - "webhook"
+    - "file"
+
+  webhook:
+    url: "http://honeypot-monitor:8080/honeytoken-alert"
+    timeout: 10
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer honeytoken-secret"

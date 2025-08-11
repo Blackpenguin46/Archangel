@@ -1,0 +1,25 @@
+[mysqld]
+# Vulnerable MySQL configuration for testing
+bind-address = 0.0.0.0
+port = 3306
+
+# Weak security settings
+skip-name-resolve
+local-infile = 1
+secure-file-priv = ""
+
+# Logging (for SIEM integration)
+general_log = 1
+general_log_file = /var/log/mysql/general.log
+log_error = /var/log/mysql/error.log
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 2
+
+# Vulnerable settings
+sql_mode = ""
+old_passwords = 1
+
+# Performance settings
+max_connections = 200
+innodb_buffer_pool_size = 128M
