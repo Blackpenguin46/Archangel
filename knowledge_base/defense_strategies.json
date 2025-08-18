@@ -1,0 +1,54 @@
+[
+  {
+    "strategy_id": "0a5b6165-b1e5-4844-922c-3b71d69d3fd9",
+    "name": "Web Application Protection",
+    "description": "Comprehensive protection strategy for web applications",
+    "defense_tactics": [
+      "detect",
+      "deny"
+    ],
+    "mitre_mitigations": [
+      "M1048",
+      "M1030"
+    ],
+    "effectiveness_score": 0.8,
+    "implementation_complexity": "medium",
+    "tools_required": [
+      "WAF",
+      "IDS",
+      "Log analysis"
+    ],
+    "created_at": "2025-08-16T16:48:08.112096",
+    "last_updated": "2025-08-16T16:48:08.112097",
+    "metadata": {
+      "category": "web_security",
+      "priority": "high"
+    }
+  },
+  {
+    "strategy_id": "d61d048c-d635-45c5-8aa2-e6c7bcddc019",
+    "name": "Network Monitoring",
+    "description": "Continuous network monitoring and anomaly detection",
+    "defense_tactics": [
+      "detect",
+      "contain"
+    ],
+    "mitre_mitigations": [
+      "M1031",
+      "M1037"
+    ],
+    "effectiveness_score": 0.7,
+    "implementation_complexity": "high",
+    "tools_required": [
+      "SIEM",
+      "Network monitoring",
+      "Threat intelligence"
+    ],
+    "created_at": "2025-08-16T16:48:08.112104",
+    "last_updated": "2025-08-16T16:48:08.112104",
+    "metadata": {
+      "category": "network_security",
+      "priority": "high"
+    }
+  }
+]

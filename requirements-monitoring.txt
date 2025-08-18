@@ -1,0 +1,42 @@
+# Monitoring and metrics requirements for Archangel system
+
+# Prometheus integration
+prometheus-client>=0.18.0
+prometheus-api-client>=0.5.3
+
+# Health monitoring and system metrics
+psutil>=5.9.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+
+# Data processing and analysis
+numpy>=1.24.0
+pandas>=2.0.0
+
+# HTTP client for webhooks and API calls
+requests>=2.31.0
+
+# Configuration management
+PyYAML>=6.0
+
+# Logging and structured output
+structlog>=23.1.0
+
+# Time and date utilities
+python-dateutil>=2.8.0
+
+# Network utilities (for health checks)
+ping3>=4.0.0
+
+# Process monitoring
+supervisor>=4.2.0  # Optional for production deployment
+
+# Container orchestration support
+docker>=6.1.0  # Optional for container management
+
+# Optional: Advanced metrics and monitoring
+# grafana-api>=1.0.0  # For programmatic Grafana dashboard management
+# alertmanager-api>=0.1.0  # For AlertManager integration

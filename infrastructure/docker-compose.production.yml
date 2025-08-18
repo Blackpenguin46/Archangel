@@ -1,0 +1,730 @@
+# Archangel Production Docker Compose Configuration
+# Comprehensive production-ready deployment with monitoring, security, and high availability
+
+version: '3.8'
+
+x-common-variables: &common-variables
+  PROJECT_NAME: ${PROJECT_NAME:-archangel}
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  NETWORK_PREFIX: ${NETWORK_PREFIX:-192.168}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  PYTHONPATH: /opt/archangel
+  
+x-resource-limits: &resource-limits
+  deploy:
+    resources:
+      limits:
+        memory: 1G
+        cpus: '1.0'
+      reservations:
+        memory: 512M
+        cpus: '0.5'
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 3
+      window: 120s
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m"
+    max-file: "5"
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+x-security-context: &security-context
+  user: "1000:1000"
+  security_opt:
+    - no-new-privileges:true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=1g
+
+networks:
+  archangel-dmz:
+    name: ${PROJECT_NAME:-archangel}-dmz-${ENVIRONMENT:-production}
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "${NETWORK_PREFIX:-192.168}.10.0/24"
+          gateway: "${NETWORK_PREFIX:-192.168}.10.1"
+    labels:
+      - "archangel.zone=dmz"
+      - "archangel.environment=${ENVIRONMENT:-production}"
+      
+  archangel-internal:
+    name: ${PROJECT_NAME:-archangel}-internal-${ENVIRONMENT:-production}
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "${NETWORK_PREFIX:-192.168}.20.0/24"
+          gateway: "${NETWORK_PREFIX:-192.168}.20.1"
+    labels:
+      - "archangel.zone=internal"
+      - "archangel.environment=${ENVIRONMENT:-production}"
+      
+  archangel-management:
+    name: ${PROJECT_NAME:-archangel}-management-${ENVIRONMENT:-production}
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "${NETWORK_PREFIX:-192.168}.40.0/24"
+          gateway: "${NETWORK_PREFIX:-192.168}.40.1"
+    labels:
+      - "archangel.zone=management"
+      - "archangel.environment=${ENVIRONMENT:-production}"
+      
+  archangel-deception:
+    name: ${PROJECT_NAME:-archangel}-deception-${ENVIRONMENT:-production}
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "${NETWORK_PREFIX:-192.168}.50.0/24"
+          gateway: "${NETWORK_PREFIX:-192.168}.50.1"
+    labels:
+      - "archangel.zone=deception"
+      - "archangel.environment=${ENVIRONMENT:-production}"
+
+volumes:
+  prometheus-data:
+    name: ${PROJECT_NAME:-archangel}-prometheus-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/data}/prometheus"
+      
+  grafana-data:
+    name: ${PROJECT_NAME:-archangel}-grafana-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/data}/grafana"
+      
+  elasticsearch-data:
+    name: ${PROJECT_NAME:-archangel}-elasticsearch-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/data}/elasticsearch"
+      
+  mysql-data:
+    name: ${PROJECT_NAME:-archangel}-mysql-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/data}/mysql"
+      
+  postgresql-data:
+    name: ${PROJECT_NAME:-archangel}-postgresql-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/data}/postgresql"
+      
+  archangel-logs:
+    name: ${PROJECT_NAME:-archangel}-logs-${ENVIRONMENT:-production}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${DATA_PATH:-/opt/archangel/logs}"
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  postgresql_password:
+    file: ./secrets/postgresql_password.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
+
+services:
+  # Core Archangel API Service
+  archangel-core:
+    image: ${DOCKER_REGISTRY:-}archangel:${VERSION:-latest}
+    container_name: ${PROJECT_NAME:-archangel}-core-${ENVIRONMENT:-production}
+    hostname: archangel-core
+    <<: *resource-limits
+    environment:
+      <<: *common-variables
+      CORE_HOST: 0.0.0.0
+      CORE_PORT: 8888
+      DATABASE_URL: postgresql://admin:admin123@postgresql:5432/archangel
+      REDIS_URL: redis://redis:6379/0
+      PROMETHEUS_ENDPOINT: http://prometheus:9090
+      ELASTICSEARCH_ENDPOINT: http://elasticsearch:9200
+    ports:
+      - "${CORE_PORT:-8888}:8888"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.10"
+      archangel-internal:
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/core"
+        target: /etc/archangel
+        read_only: true
+      - type: volume
+        source: archangel-logs
+        target: /opt/archangel/logs
+    logging: *default-logging
+    <<: *security-context
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - postgresql
+      - redis
+      - prometheus
+      - elasticsearch
+    labels:
+      - "archangel.service=core-api"
+      - "archangel.version=${VERSION:-latest}"
+      - "traefik.enable=true"
+      - "traefik.http.routers.core.rule=Host(`api.archangel.local`)"
+
+  # Autonomous Agent Services
+  archangel-agent:
+    image: ${DOCKER_REGISTRY:-}archangel-agent:${VERSION:-latest}
+    hostname: archangel-agent
+    <<: *resource-limits
+    deploy:
+      replicas: ${AGENT_REPLICAS:-3}
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    environment:
+      <<: *common-variables
+      AGENT_TYPE: autonomous
+      CORE_ENDPOINT: http://archangel-core:8888
+      AGENT_ID: agent-${HOSTNAME:-unknown}
+      DECISION_INTERVAL: ${DECISION_INTERVAL:-30}
+      LEARNING_ENABLED: ${LEARNING_ENABLED:-true}
+      ETHICS_ENFORCEMENT: ${ETHICS_ENFORCEMENT:-true}
+    networks:
+      - archangel-internal
+      - archangel-dmz
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/agents"
+        target: /etc/archangel
+        read_only: true
+      - type: volume
+        source: archangel-logs
+        target: /opt/archangel/logs
+    logging: *default-logging
+    <<: *security-context
+    depends_on:
+      - archangel-core
+    labels:
+      - "archangel.service=autonomous-agent"
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.40.0}
+    container_name: ${PROJECT_NAME:-archangel}-prometheus-${ENVIRONMENT:-production}
+    hostname: prometheus
+    <<: *resource-limits
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.max-block-duration=2h'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.20"
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/prometheus"
+        target: /etc/prometheus
+        read_only: true
+      - type: volume
+        source: prometheus-data
+        target: /prometheus
+    logging: *default-logging
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=500m
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "archangel.service=prometheus"
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.archangel.local`)"
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-9.3.0}
+    container_name: ${PROJECT_NAME:-archangel}-grafana-${ENVIRONMENT:-production}
+    hostname: grafana
+    <<: *resource-limits
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: grafana-worldmap-panel,grafana-piechart-panel,grafana-clock-panel
+      GF_SECURITY_ALLOW_EMBEDDING: true
+      GF_AUTH_ANONYMOUS_ENABLED: false
+      GF_SMTP_ENABLED: true
+      GF_SMTP_HOST: ${SMTP_HOST:-smtp.archangel.local:587}
+      GF_SMTP_FROM_ADDRESS: grafana@archangel.local
+      GF_LOG_LEVEL: ${GRAFANA_LOG_LEVEL:-info}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.21"
+    volumes:
+      - type: volume
+        source: grafana-data
+        target: /var/lib/grafana
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/grafana/provisioning"
+        target: /etc/grafana/provisioning
+        read_only: true
+    secrets:
+      - grafana_admin_password
+    logging: *default-logging
+    user: "472:472"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=500m
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - prometheus
+    labels:
+      - "archangel.service=grafana"
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.archangel.local`)"
+
+  alertmanager:
+    image: prom/alertmanager:${ALERTMANAGER_VERSION:-v0.25.0}
+    container_name: ${PROJECT_NAME:-archangel}-alertmanager-${ENVIRONMENT:-production}
+    hostname: alertmanager
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager.archangel.local'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.22"
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/alertmanager"
+        target: /etc/alertmanager
+        read_only: true
+    logging: *default-logging
+    user: "65534:65534"
+    read_only: true
+    labels:
+      - "archangel.service=alertmanager"
+
+  # ELK Stack for Logging
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION:-7.17.0}
+    container_name: ${PROJECT_NAME:-archangel}-elasticsearch-${ENVIRONMENT:-production}
+    hostname: elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms2g -Xmx2g"
+      xpack.security.enabled: false
+      xpack.monitoring.collection.enabled: true
+      cluster.name: archangel-logs
+      node.name: elasticsearch-master
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.30"
+    volumes:
+      - type: volume
+        source: elasticsearch-data
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/elasticsearch"
+        target: /usr/share/elasticsearch/config
+        read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    logging: *default-logging
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "archangel.service=elasticsearch"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION:-7.17.0}
+    container_name: ${PROJECT_NAME:-archangel}-kibana-${ENVIRONMENT:-production}
+    hostname: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_HOST: 0.0.0.0
+      SERVER_NAME: archangel-kibana
+      LOGGING_VERBOSE: false
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.31"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging: *default-logging
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=500m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      - elasticsearch
+    labels:
+      - "archangel.service=kibana"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELK_VERSION:-7.17.0}
+    container_name: ${PROJECT_NAME:-archangel}-logstash-${ENVIRONMENT:-production}
+    hostname: logstash
+    environment:
+      LS_JAVA_OPTS: "-Xms1g -Xmx1g"
+      PIPELINE_WORKERS: 2
+      PIPELINE_BATCH_SIZE: 125
+    ports:
+      - "${LOGSTASH_PORT:-5044}:5044"
+    networks:
+      archangel-management:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.40.32"
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/logstash/pipeline"
+        target: /usr/share/logstash/pipeline
+        read_only: true
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/logstash"
+        target: /usr/share/logstash/config
+        read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging: *default-logging
+    user: "1000:1000"
+    read_only: true
+    depends_on:
+      - elasticsearch
+    labels:
+      - "archangel.service=logstash"
+
+  # Database Services
+  postgresql:
+    image: postgres:${POSTGRES_VERSION:-14-alpine}
+    container_name: ${PROJECT_NAME:-archangel}-postgresql-${ENVIRONMENT:-production}
+    hostname: postgresql
+    environment:
+      POSTGRES_DB: archangel
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgresql_password
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      archangel-internal:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.20.10"
+    volumes:
+      - type: volume
+        source: postgresql-data
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/postgresql"
+        target: /etc/postgresql
+        read_only: true
+    secrets:
+      - postgresql_password
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging: *default-logging
+    user: "70:70"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=500m
+      - /var/run/postgresql:rw,noexec,nosuid,size=100m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d archangel"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "archangel.service=postgresql"
+
+  redis:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    container_name: ${PROJECT_NAME:-archangel}-redis-${ENVIRONMENT:-production}
+    hostname: redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      archangel-internal:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.20.11"
+    volumes:
+      - type: bind
+        source: "${DATA_PATH:-/opt/archangel/data}/redis"
+        target: /data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging: *default-logging
+    user: "999:999"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "archangel.service=redis"
+
+  # Load Balancer and Reverse Proxy
+  nginx:
+    image: nginx:${NGINX_VERSION:-alpine}
+    container_name: ${PROJECT_NAME:-archangel}-nginx-${ENVIRONMENT:-production}
+    hostname: nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    networks:
+      archangel-dmz:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.10.10"
+      archangel-management:
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/nginx"
+        target: /etc/nginx
+        read_only: true
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/ssl"
+        target: /etc/ssl/private
+        read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    logging: *default-logging
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:rw,noexec,nosuid,size=100m
+      - /var/run:rw,noexec,nosuid,size=100m
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "archangel.service=nginx"
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`archangel.local`)"
+
+  # Security Tools
+  vulnerability-scanner:
+    image: owasp/zap2docker-stable:${ZAP_VERSION:-latest}
+    container_name: ${PROJECT_NAME:-archangel}-zap-${ENVIRONMENT:-production}
+    hostname: vulnerability-scanner
+    command: |
+      bash -c "
+        zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true &
+        sleep 30
+        zap-baseline.py -t http://nginx -m 5 -l INFO
+        tail -f /dev/null
+      "
+    ports:
+      - "${ZAP_PORT:-8080}:8080"
+    networks:
+      - archangel-dmz
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=500m
+    depends_on:
+      - nginx
+    labels:
+      - "archangel.service=vulnerability-scanner"
+
+  # Honeypot Services
+  ssh-honeypot:
+    image: cowrie/cowrie:${COWRIE_VERSION:-latest}
+    container_name: ${PROJECT_NAME:-archangel}-ssh-honeypot-${ENVIRONMENT:-production}
+    hostname: ssh-honeypot
+    ports:
+      - "2222:2222"
+      - "2223:2223"
+    networks:
+      archangel-deception:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.50.10"
+    volumes:
+      - type: bind
+        source: "${CONFIG_PATH:-./config}/honeypots/cowrie"
+        target: /cowrie/cowrie-git/etc
+        read_only: true
+      - type: bind
+        source: "${DATA_PATH:-/opt/archangel/data}/honeypots/cowrie"
+        target: /cowrie/cowrie-git/var
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging: *default-logging
+    labels:
+      - "archangel.service=ssh-honeypot"
+
+  web-honeypot:
+    image: honeynet/conpot:${CONPOT_VERSION:-latest}
+    container_name: ${PROJECT_NAME:-archangel}-web-honeypot-${ENVIRONMENT:-production}
+    hostname: web-honeypot
+    ports:
+      - "8080:80"
+      - "5020:502"
+    networks:
+      archangel-deception:
+        ipv4_address: "${NETWORK_PREFIX:-192.168}.50.20"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging: *default-logging
+    labels:
+      - "archangel.service=web-honeypot"
+
+  # Backup Service
+  backup-service:
+    image: postgres:14-alpine
+    container_name: ${PROJECT_NAME:-archangel}-backup-${ENVIRONMENT:-production}
+    hostname: backup-service
+    command: |
+      sh -c "
+        while true; do
+          pg_dump -h postgresql -U admin archangel | gzip > /backup/archangel_$(date +%Y%m%d_%H%M%S).sql.gz
+          find /backup -name '*.sql.gz' -mtime +30 -delete
+          sleep 86400
+        done
+      "
+    networks:
+      - archangel-internal
+    volumes:
+      - type: bind
+        source: "${BACKUP_PATH:-/opt/archangel/backups}"
+        target: /backup
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+    depends_on:
+      - postgresql
+    labels:
+      - "archangel.service=backup"

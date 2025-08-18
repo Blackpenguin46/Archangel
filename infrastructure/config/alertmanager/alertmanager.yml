@@ -1,0 +1,80 @@
+global:
+  smtp_smarthost: 'mail-server:1025'
+  smtp_from: 'archangel-alerts@example.com'
+
+route:
+  group_by: ['alertname', 'severity', 'component']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 30m
+    
+    - match:
+        component: agent
+      receiver: 'agent-alerts'
+      group_interval: 30s
+    
+    - match:
+        component: honeypot
+      receiver: 'security-alerts'
+    
+    - match:
+        component: database
+      receiver: 'infrastructure-alerts'
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://honeypot-monitor:9091/webhook/alerts'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    webhook_configs:
+      - url: 'http://honeypot-monitor:9091/webhook/critical'
+        send_resolved: true
+    email_configs:
+      - to: 'admin@archangel.local'
+        subject: '[CRITICAL] Archangel System Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Severity: {{ .GroupLabels.severity }}
+          Component: {{ .GroupLabels.component }}
+          
+          {{ range .Alerts }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          {{ end }}
+
+  - name: 'agent-alerts'
+    webhook_configs:
+      - url: 'http://honeypot-monitor:9091/webhook/agents'
+        send_resolved: true
+
+  - name: 'security-alerts'
+    webhook_configs:
+      - url: 'http://honeypot-monitor:9091/webhook/security'
+        send_resolved: true
+
+  - name: 'infrastructure-alerts'
+    webhook_configs:
+      - url: 'http://honeypot-monitor:9091/webhook/infrastructure'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  - source_match:
+      alertname: 'AgentDown'
+    target_match_re:
+      alertname: 'Agent.*'
+    equal: ['instance']

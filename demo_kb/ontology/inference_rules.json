@@ -1,0 +1,26 @@
+[
+  {
+    "rule_id": "09d59356-b540-4917-8567-6ea23a3af55d",
+    "name": "Transitive Detection Rule",
+    "description": "If a defense technique detects an attack technique, and that attack technique is similar to another, the defense might also detect the similar technique.",
+    "conditions": [
+      {
+        "relation_type": "detects",
+        "confidence_min": 0.7
+      },
+      {
+        "relation_type": "similar_to",
+        "confidence_min": 0.6
+      }
+    ],
+    "conclusions": [
+      {
+        "relation_type": "detects",
+        "confidence_factor": 0.8
+      }
+    ],
+    "confidence_threshold": 0.5,
+    "enabled": true,
+    "created_at": "2025-08-16T17:15:21.364019"
+  }
+]

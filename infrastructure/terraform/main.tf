@@ -1,59 +1,166 @@
+# Archangel Infrastructure as Code - Enhanced Main Configuration
+# Complete environment deployment with comprehensive automation
+
 terraform {
+  required_version = ">= 1.0"
   required_providers {
     docker = {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.4"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
+  }
+  
+  backend "local" {
+    path = "terraform.tfstate"
   }
 }
 
+# Provider Configuration
 provider "docker" {
   host = "unix:///var/run/docker.sock"
 }
 
-# Networks
+# Data sources for existing resources
+data "docker_network" "bridge" {
+  name = "bridge"
+}
+
+# Local values from variables
+locals {
+  # Import computed values from variables.tf
+  networks      = data.external.compute_networks.result
+  common_tags   = data.external.compute_tags.result
+  service_urls  = data.external.service_discovery.result
+}
+
+# External data sources for computed values
+data "external" "compute_networks" {
+  program = ["echo", jsonencode({
+    dmz        = "${var.network_prefix}.10.0/24"
+    internal   = "${var.network_prefix}.20.0/24"
+    management = "${var.network_prefix}.40.0/24"
+    deception  = "${var.network_prefix}.50.0/24"
+  })]
+}
+
+data "external" "compute_tags" {
+  program = ["echo", jsonencode({
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+    Component   = "archangel-infrastructure"
+    Version     = "1.0.0"
+  })]
+}
+
+data "external" "service_discovery" {
+  program = ["echo", jsonencode({
+    core_api = "http://localhost:8888"
+    prometheus = var.enable_monitoring ? "http://localhost:9090" : ""
+    grafana = var.enable_monitoring ? "http://localhost:3000" : ""
+  })]
+}
+
+# Enhanced Network Configuration
 resource "docker_network" "dmz_network" {
-  name = "archangel_dmz"
+  name = "${var.project_name}-dmz-${var.environment}"
   driver = "bridge"
   
   ipam_config {
-    subnet = "192.168.10.0/24"
-    gateway = "192.168.10.1"
+    subnet = "${var.network_prefix}.10.0/24"
+    gateway = "${var.network_prefix}.10.1"
+  }
+  
+  options = {
+    "com.docker.network.bridge.enable_icc"           = "true"
+    "com.docker.network.bridge.enable_ip_masquerade" = "true"
+    "com.docker.network.driver.mtu"                  = "1500"
   }
   
   labels {
     label = "archangel.zone"
     value = "dmz"
   }
+  
+  labels {
+    label = "archangel.environment"
+    value = var.environment
+  }
+  
+  labels {
+    label = "archangel.managed-by"
+    value = "terraform"
+  }
 }
 
 resource "docker_network" "internal_network" {
-  name = "archangel_internal"
+  name = "${var.project_name}-internal-${var.environment}"
   driver = "bridge"
+  internal = true  # Internal network for security
   
   ipam_config {
-    subnet = "192.168.20.0/24"
-    gateway = "192.168.20.1"
+    subnet = "${var.network_prefix}.20.0/24"
+    gateway = "${var.network_prefix}.20.1"
   }
   
   labels {
     label = "archangel.zone"
     value = "internal"
   }
+  
+  labels {
+    label = "archangel.environment"
+    value = var.environment
+  }
 }
 
 resource "docker_network" "management_network" {
-  name = "archangel_management"
+  name = "${var.project_name}-management-${var.environment}"
   driver = "bridge"
   
   ipam_config {
-    subnet = "192.168.40.0/24"
-    gateway = "192.168.40.1"
+    subnet = "${var.network_prefix}.40.0/24"
+    gateway = "${var.network_prefix}.40.1"
   }
   
   labels {
     label = "archangel.zone"
     value = "management"
+  }
+  
+  labels {
+    label = "archangel.environment"
+    value = var.environment
+  }
+}
+
+# Additional deception network for honeypots
+resource "docker_network" "deception_network" {
+  name = "${var.project_name}-deception-${var.environment}"
+  driver = "bridge"
+  internal = true  # Isolated deception network
+  
+  ipam_config {
+    subnet = "${var.network_prefix}.50.0/24"
+    gateway = "${var.network_prefix}.50.1"
+  }
+  
+  labels {
+    label = "archangel.zone"
+    value = "deception"
+  }
+  
+  labels {
+    label = "archangel.environment"
+    value = var.environment
   }
 }
 

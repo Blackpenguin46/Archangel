@@ -1,0 +1,612 @@
+{
+  "timestamp": "2025-08-16T17:16:48.022424",
+  "ontology_statistics": {
+    "entities": {
+      "total": 37,
+      "by_type": {
+        "tactic": 19,
+        "attack_technique": 9,
+        "defense_technique": 9
+      }
+    },
+    "relations": {
+      "total": 10,
+      "by_type": {
+        "part_of": 5,
+        "detects": 3,
+        "mitigates": 2
+      }
+    },
+    "mappings": {
+      "total": 3,
+      "frameworks": [
+        "mitre_attack",
+        "d3fend"
+      ]
+    },
+    "inference_rules": {
+      "total": 1,
+      "enabled": 1
+    },
+    "knowledge_graph": {
+      "nodes": 37,
+      "edges": 10,
+      "density": 0.0075075075075075074
+    }
+  },
+  "knowledge_graph": {
+    "nodes": [
+      {
+        "id": "d6357b88-a022-459f-b8c2-99ff6d1ca043",
+        "entity_type": "tactic",
+        "name": "Reconnaissance",
+        "mitre_id": "reconnaissance",
+        "d3fend_id": null,
+        "tactic_id": "reconnaissance",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "25c0e0db-a4b5-4a6f-a613-33f9b7bf113e",
+        "entity_type": "tactic",
+        "name": "Initial Access",
+        "mitre_id": "initial-access",
+        "d3fend_id": null,
+        "tactic_id": "initial-access",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "62b5e761-5701-430b-aed6-c5ca909197f2",
+        "entity_type": "tactic",
+        "name": "Execution",
+        "mitre_id": "execution",
+        "d3fend_id": null,
+        "tactic_id": "execution",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "74d6b2f6-6147-46d6-9ef9-b76d22dfefde",
+        "entity_type": "tactic",
+        "name": "Persistence",
+        "mitre_id": "persistence",
+        "d3fend_id": null,
+        "tactic_id": "persistence",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "5f583b7c-9583-4b14-8520-dda148cc8d1c",
+        "entity_type": "tactic",
+        "name": "Privilege Escalation",
+        "mitre_id": "privilege-escalation",
+        "d3fend_id": null,
+        "tactic_id": "privilege-escalation",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "ac90dc80-4802-41d3-b5dc-58c180b811f9",
+        "entity_type": "tactic",
+        "name": "Defense Evasion",
+        "mitre_id": "defense-evasion",
+        "d3fend_id": null,
+        "tactic_id": "defense-evasion",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "9adc08bb-4118-4362-b035-e5d7dac6c73e",
+        "entity_type": "tactic",
+        "name": "Credential Access",
+        "mitre_id": "credential-access",
+        "d3fend_id": null,
+        "tactic_id": "credential-access",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "8d5d92b9-41f5-4ecf-ae7e-4745d3ce8d5c",
+        "entity_type": "tactic",
+        "name": "Discovery",
+        "mitre_id": "discovery",
+        "d3fend_id": null,
+        "tactic_id": "discovery",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "f8f02c8e-f1a3-4aeb-83c5-eb207144424b",
+        "entity_type": "tactic",
+        "name": "Lateral Movement",
+        "mitre_id": "lateral-movement",
+        "d3fend_id": null,
+        "tactic_id": "lateral-movement",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "7ede83ad-992f-4b10-807c-4ec83c35389a",
+        "entity_type": "tactic",
+        "name": "Collection",
+        "mitre_id": "collection",
+        "d3fend_id": null,
+        "tactic_id": "collection",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "861ac7ef-f284-45c8-bf3a-ebadc96d0e14",
+        "entity_type": "tactic",
+        "name": "Command and Control",
+        "mitre_id": "command-and-control",
+        "d3fend_id": null,
+        "tactic_id": "command-and-control",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "1ed7352c-46e5-4d16-b015-ee0a716f5aef",
+        "entity_type": "tactic",
+        "name": "Exfiltration",
+        "mitre_id": "exfiltration",
+        "d3fend_id": null,
+        "tactic_id": "exfiltration",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "95841e10-f1d7-42a7-9eae-ba779d960eea",
+        "entity_type": "tactic",
+        "name": "Impact",
+        "mitre_id": "impact",
+        "d3fend_id": null,
+        "tactic_id": "impact",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "1fe70679-c044-4a53-b2d0-07c1a7e7e4fa",
+        "entity_type": "attack_technique",
+        "name": "Active Scanning",
+        "mitre_id": "T1595",
+        "d3fend_id": null,
+        "technique_id": "T1595",
+        "tactic": "reconnaissance",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "58abc5a0-1c13-4cf8-b38c-e4cd3c8021f0",
+        "entity_type": "attack_technique",
+        "name": "Exploit Public-Facing Application",
+        "mitre_id": "T1190",
+        "d3fend_id": null,
+        "technique_id": "T1190",
+        "tactic": "initial-access",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "a69443d9-f132-483c-871e-4360dd1a91b7",
+        "entity_type": "attack_technique",
+        "name": "Command and Scripting Interpreter",
+        "mitre_id": "T1059",
+        "d3fend_id": null,
+        "technique_id": "T1059",
+        "tactic": "execution",
+        "framework": "mitre_attack"
+      },
+      {
+        "id": "458e27e0-7382-4511-8f59-27e95c9fd3e9",
+        "entity_type": "defense_technique",
+        "name": "Network Traffic Analysis",
+        "mitre_id": null,
+        "d3fend_id": "D3-NTA",
+        "technique_id": "D3-NTA",
+        "framework": "d3fend"
+      },
+      {
+        "id": "53078078-013b-457a-a1a0-d3a63ab143c0",
+        "entity_type": "defense_technique",
+        "name": "System Monitoring",
+        "mitre_id": null,
+        "d3fend_id": "D3-SYMON",
+        "technique_id": "D3-SYMON",
+        "framework": "d3fend"
+      },
+      {
+        "id": "aa737558-7f1f-4595-89df-0e43088d1a9d",
+        "entity_type": "defense_technique",
+        "name": "Application Logging",
+        "mitre_id": null,
+        "d3fend_id": "D3-AL",
+        "technique_id": "D3-AL",
+        "framework": "d3fend"
+      },
+      {
+        "id": "47a3c92f-f7b8-49d9-8dc7-1b21d2cb7b27",
+        "entity_type": "tactic",
+        "name": "Reconnaissance",
+        "mitre_id": "TA0043",
+        "d3fend_id": null,
+        "phase": "pre-attack"
+      },
+      {
+        "id": "6b05d52b-e251-4a03-be7d-12c95f1d0b30",
+        "entity_type": "tactic",
+        "name": "Initial Access",
+        "mitre_id": "TA0001",
+        "d3fend_id": null,
+        "phase": "attack"
+      },
+      {
+        "id": "2e5ec2eb-0662-41d4-859a-34ca8b7fee31",
+        "entity_type": "attack_technique",
+        "name": "Active Scanning",
+        "mitre_id": "T1595",
+        "d3fend_id": null,
+        "stealth_level": "low",
+        "detection_difficulty": "easy",
+        "platforms": [
+          "PRE"
+        ],
+        "data_sources": [
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "258c913c-c8a5-4335-ace5-e2af0de71937",
+        "entity_type": "attack_technique",
+        "name": "Exploit Public-Facing Application",
+        "mitre_id": "T1190",
+        "d3fend_id": null,
+        "stealth_level": "medium",
+        "detection_difficulty": "medium",
+        "platforms": [
+          "Linux",
+          "Windows",
+          "macOS"
+        ],
+        "data_sources": [
+          "Application Log",
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "3e41ecd1-d17c-4897-ae3b-dd9a24448fab",
+        "entity_type": "defense_technique",
+        "name": "Network Traffic Analysis",
+        "mitre_id": null,
+        "d3fend_id": "D3-NTA",
+        "detection_type": "behavioral",
+        "effectiveness": 0.85,
+        "false_positive_rate": 0.05
+      },
+      {
+        "id": "5cbc1a4f-871b-4abc-bf45-bfa650e6fea0",
+        "entity_type": "defense_technique",
+        "name": "Application Hardening",
+        "mitre_id": null,
+        "d3fend_id": "D3-AH",
+        "prevention_type": "proactive",
+        "effectiveness": 0.9,
+        "implementation_complexity": "medium"
+      },
+      {
+        "id": "4c9e8341-2cad-4cc6-9ace-7189459f3ac4",
+        "entity_type": "tactic",
+        "name": "Reconnaissance",
+        "mitre_id": "TA0043",
+        "d3fend_id": null,
+        "phase": "pre-attack"
+      },
+      {
+        "id": "8320b57b-10e9-4be9-8294-f6e64773c35c",
+        "entity_type": "tactic",
+        "name": "Initial Access",
+        "mitre_id": "TA0001",
+        "d3fend_id": null,
+        "phase": "attack"
+      },
+      {
+        "id": "c4787956-cc46-480e-aba1-e8fb6c27f949",
+        "entity_type": "attack_technique",
+        "name": "Active Scanning",
+        "mitre_id": "T1595",
+        "d3fend_id": null,
+        "stealth_level": "low",
+        "detection_difficulty": "easy",
+        "platforms": [
+          "PRE"
+        ],
+        "data_sources": [
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "4d31a64f-36fd-4426-a99f-64e293ea4cee",
+        "entity_type": "attack_technique",
+        "name": "Exploit Public-Facing Application",
+        "mitre_id": "T1190",
+        "d3fend_id": null,
+        "stealth_level": "medium",
+        "detection_difficulty": "medium",
+        "platforms": [
+          "Linux",
+          "Windows",
+          "macOS"
+        ],
+        "data_sources": [
+          "Application Log",
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "665d5eec-1ab7-4585-80c8-8f6290b06189",
+        "entity_type": "defense_technique",
+        "name": "Network Traffic Analysis",
+        "mitre_id": null,
+        "d3fend_id": "D3-NTA",
+        "detection_type": "behavioral",
+        "effectiveness": 0.85,
+        "false_positive_rate": 0.05
+      },
+      {
+        "id": "d8c60c0f-c6c1-4ede-9f9e-ba172f70e89e",
+        "entity_type": "defense_technique",
+        "name": "Application Hardening",
+        "mitre_id": null,
+        "d3fend_id": "D3-AH",
+        "prevention_type": "proactive",
+        "effectiveness": 0.9,
+        "implementation_complexity": "medium"
+      },
+      {
+        "id": "9588b1da-66cf-4fb4-b04e-370e83ddd119",
+        "entity_type": "tactic",
+        "name": "Reconnaissance",
+        "mitre_id": "TA0043",
+        "d3fend_id": null,
+        "phase": "pre-attack"
+      },
+      {
+        "id": "0ef92b79-9b1f-464e-95d7-30fecb6ec948",
+        "entity_type": "tactic",
+        "name": "Initial Access",
+        "mitre_id": "TA0001",
+        "d3fend_id": null,
+        "phase": "attack"
+      },
+      {
+        "id": "70590bc3-d5b6-4708-9294-567608dab0d1",
+        "entity_type": "attack_technique",
+        "name": "Active Scanning",
+        "mitre_id": "T1595",
+        "d3fend_id": null,
+        "stealth_level": "low",
+        "detection_difficulty": "easy",
+        "platforms": [
+          "PRE"
+        ],
+        "data_sources": [
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "6cc648fd-0947-49d9-b9f4-e232e8feaa69",
+        "entity_type": "attack_technique",
+        "name": "Exploit Public-Facing Application",
+        "mitre_id": "T1190",
+        "d3fend_id": null,
+        "stealth_level": "medium",
+        "detection_difficulty": "medium",
+        "platforms": [
+          "Linux",
+          "Windows",
+          "macOS"
+        ],
+        "data_sources": [
+          "Application Log",
+          "Network Traffic"
+        ]
+      },
+      {
+        "id": "68e45b0b-a7de-4a54-87e3-fb65c0fafbbf",
+        "entity_type": "defense_technique",
+        "name": "Network Traffic Analysis",
+        "mitre_id": null,
+        "d3fend_id": "D3-NTA",
+        "detection_type": "behavioral",
+        "effectiveness": 0.85,
+        "false_positive_rate": 0.05
+      },
+      {
+        "id": "a4442561-1ecd-42af-816a-5509ad4dfe7a",
+        "entity_type": "defense_technique",
+        "name": "Application Hardening",
+        "mitre_id": null,
+        "d3fend_id": "D3-AH",
+        "prevention_type": "proactive",
+        "effectiveness": 0.9,
+        "implementation_complexity": "medium"
+      }
+    ],
+    "edges": [
+      {
+        "source": "1fe70679-c044-4a53-b2d0-07c1a7e7e4fa",
+        "target": "d6357b88-a022-459f-b8c2-99ff6d1ca043",
+        "key": "ed21b6c8-29ba-4715-a3f5-489a983cf5f0",
+        "relation_type": "part_of",
+        "confidence": 1.0,
+        "description": "Active Scanning is part of Reconnaissance tactic"
+      },
+      {
+        "source": "458e27e0-7382-4511-8f59-27e95c9fd3e9",
+        "target": "1fe70679-c044-4a53-b2d0-07c1a7e7e4fa",
+        "key": "caa2661c-5011-42b9-acfc-9e14bb14b27e",
+        "relation_type": "detects",
+        "confidence": 1.0,
+        "description": "Network Traffic Analysis can detect Active Scanning"
+      },
+      {
+        "source": "c4787956-cc46-480e-aba1-e8fb6c27f949",
+        "target": "4c9e8341-2cad-4cc6-9ace-7189459f3ac4",
+        "key": "621ff64a-e35c-4da0-afdb-dac7d7171406",
+        "relation_type": "part_of",
+        "confidence": 1.0
+      },
+      {
+        "source": "4d31a64f-36fd-4426-a99f-64e293ea4cee",
+        "target": "8320b57b-10e9-4be9-8294-f6e64773c35c",
+        "key": "f1b48189-36fc-4377-add2-6b11c528d563",
+        "relation_type": "part_of",
+        "confidence": 1.0
+      },
+      {
+        "source": "665d5eec-1ab7-4585-80c8-8f6290b06189",
+        "target": "c4787956-cc46-480e-aba1-e8fb6c27f949",
+        "key": "5afe833a-4f9f-41ce-9658-318cc9f4abdb",
+        "relation_type": "detects",
+        "confidence": 1.0,
+        "detection_rate": 0.85
+      },
+      {
+        "source": "d8c60c0f-c6c1-4ede-9f9e-ba172f70e89e",
+        "target": "4d31a64f-36fd-4426-a99f-64e293ea4cee",
+        "key": "875dd02d-6b28-4384-b31e-ca019ea16dc8",
+        "relation_type": "mitigates",
+        "confidence": 1.0,
+        "mitigation_rate": 0.9
+      },
+      {
+        "source": "70590bc3-d5b6-4708-9294-567608dab0d1",
+        "target": "9588b1da-66cf-4fb4-b04e-370e83ddd119",
+        "key": "3c1cc1d7-0e53-4d1b-8e02-a28a7f989e5c",
+        "relation_type": "part_of",
+        "confidence": 1.0
+      },
+      {
+        "source": "6cc648fd-0947-49d9-b9f4-e232e8feaa69",
+        "target": "0ef92b79-9b1f-464e-95d7-30fecb6ec948",
+        "key": "beeec533-ad33-41b6-be9d-fe3e2662b781",
+        "relation_type": "part_of",
+        "confidence": 1.0
+      },
+      {
+        "source": "68e45b0b-a7de-4a54-87e3-fb65c0fafbbf",
+        "target": "70590bc3-d5b6-4708-9294-567608dab0d1",
+        "key": "dc5614b9-c217-4eaa-b82d-21a36dca81d9",
+        "relation_type": "detects",
+        "confidence": 1.0,
+        "detection_rate": 0.85
+      },
+      {
+        "source": "a4442561-1ecd-42af-816a-5509ad4dfe7a",
+        "target": "6cc648fd-0947-49d9-b9f4-e232e8feaa69",
+        "key": "303e166b-0a1e-43af-b382-3b71515f427c",
+        "relation_type": "mitigates",
+        "confidence": 1.0,
+        "mitigation_rate": 0.9
+      }
+    ]
+  },
+  "semantic_mappings": {
+    "mappings": [
+      {
+        "mapping_id": "1a9cff38-0648-4cf1-9189-9b8c32c0f458",
+        "source_framework": "mitre_attack",
+        "source_entity_id": "T1595",
+        "target_framework": "d3fend",
+        "target_entity_id": "D3-NTA",
+        "mapping_type": "detection",
+        "confidence": "high",
+        "confidence_score": 0.9,
+        "evidence": [
+          "Network Traffic Analysis directly detects Active Scanning",
+          "Both techniques involve network traffic monitoring"
+        ],
+        "properties": {
+          "detection_effectiveness": 0.85
+        },
+        "created_at": "2025-08-16T17:15:42.942875",
+        "validated": false
+      },
+      {
+        "mapping_id": "58e6bfba-ce98-4d41-a5ed-176bc93f39fc",
+        "source_framework": "mitre_attack",
+        "source_entity_id": "T1190",
+        "target_framework": "d3fend",
+        "target_entity_id": "D3-AH",
+        "mapping_type": "mitigation",
+        "confidence": "high",
+        "confidence_score": 0.95,
+        "evidence": [
+          "Application Hardening directly mitigates public-facing application exploits",
+          "Proactive defense against application vulnerabilities"
+        ],
+        "properties": {
+          "mitigation_effectiveness": 0.9
+        },
+        "created_at": "2025-08-16T17:15:42.942882",
+        "validated": false
+      },
+      {
+        "mapping_id": "71fca163-d9f7-48b3-b43d-3d424b4bb179",
+        "source_framework": "mitre_attack",
+        "source_entity_id": "T1595",
+        "target_framework": "d3fend",
+        "target_entity_id": "D3-NTA",
+        "mapping_type": "detection",
+        "confidence": "high",
+        "confidence_score": 0.9,
+        "evidence": [
+          "Network Traffic Analysis directly detects Active Scanning",
+          "Both techniques involve network traffic monitoring"
+        ],
+        "properties": {
+          "detection_effectiveness": 0.85
+        },
+        "created_at": "2025-08-16T17:16:47.986754",
+        "validated": false
+      },
+      {
+        "mapping_id": "84f1050a-925b-494c-9a53-cd391f54bd9d",
+        "source_framework": "mitre_attack",
+        "source_entity_id": "T1190",
+        "target_framework": "d3fend",
+        "target_entity_id": "D3-AH",
+        "mapping_type": "mitigation",
+        "confidence": "high",
+        "confidence_score": 0.95,
+        "evidence": [
+          "Application Hardening directly mitigates public-facing application exploits",
+          "Proactive defense against application vulnerabilities"
+        ],
+        "properties": {
+          "mitigation_effectiveness": 0.9
+        },
+        "created_at": "2025-08-16T17:16:47.986803",
+        "validated": false
+      }
+    ],
+    "metadata": {
+      "export_timestamp": "2025-08-16T17:16:48.022403",
+      "total_mappings": 4,
+      "frameworks_included": "all"
+    }
+  },
+  "inference_statistics": {
+    "total_inferences": 104,
+    "successful_inferences": 104,
+    "failed_inferences": 0,
+    "by_type": {
+      "similarity": 99,
+      "transitive": 5
+    },
+    "by_confidence": {},
+    "total_rules": 2,
+    "enabled_rules": 2,
+    "total_results": 1,
+    "validated_results": 0,
+    "unvalidated_results": 1,
+    "rejected_results": 0,
+    "knowledge_patterns": 0,
+    "success_rate": 100.0
+  },
+  "metadata": {
+    "demo_version": "1.0",
+    "components": [
+      "ontology_manager",
+      "semantic_mapper",
+      "inference_engine",
+      "ontology_updater"
+    ]
+  }
+}

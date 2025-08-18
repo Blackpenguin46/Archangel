@@ -1,0 +1,176 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Archangel Agents Performance",
+    "tags": ["archangel", "agents", "performance"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agent Status Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"archangel-agents\"}",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ]
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Active Agents by Team",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "count by (team) (archangel_agent_status{status=\"active\"})",
+            "legendFormat": "{{team}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Agent Decision Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(archangel_agent_decisions_total[5m])",
+            "legendFormat": "{{agent_id}} - {{agent_type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Decisions/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Agent Response Times",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "archangel_agent_response_time_seconds",
+            "legendFormat": "{{agent_id}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Agent Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "archangel_agent_memory_usage_bytes / 1024 / 1024",
+            "legendFormat": "{{agent_id}} Memory (MB)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (MB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Decision Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(rate(archangel_agent_decisions_success_total[5m]) / rate(archangel_agent_decisions_total[5m])) * 100",
+            "legendFormat": "{{agent_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "Team Coordination Score",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "archangel_team_coordination_score",
+            "legendFormat": "{{team}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Coordination Score",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 8,
+        "title": "Communication Failures",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(archangel_agent_communication_failures_total[5m])",
+            "legendFormat": "{{agent_id}} Failures/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Failures/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ]
+  }
+}

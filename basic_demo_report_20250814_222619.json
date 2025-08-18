@@ -1,0 +1,929 @@
+{
+  "service_name": "archangel_basic_demo",
+  "export_timestamp": "2025-08-15T02:26:19.202238",
+  "events": [
+    {
+      "event_id": "agent_alpha_1755224763022725",
+      "timestamp": "2025-08-15T02:26:03.022734",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "agent_id": "alpha",
+        "sequence": 0
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224763023001",
+      "timestamp": "2025-08-15T02:26:03.023005",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "agent_id": "beta",
+        "sequence": 0
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224763127921",
+      "timestamp": "2025-08-15T02:26:03.127928",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 100.86734173919952,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224763521055",
+      "timestamp": "2025-08-15T02:26:03.521062",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 497.4063986910916,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224763737528",
+      "timestamp": "2025-08-15T02:26:03.737557",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "learning",
+        "agent_id": "alpha",
+        "sequence": 1
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224763997823",
+      "timestamp": "2025-08-15T02:26:03.997830",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "learning",
+        "duration_ms": 259.792588481365,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224764371226",
+      "timestamp": "2025-08-15T02:26:04.371244",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "agent_id": "alpha",
+        "sequence": 2
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224764503642",
+      "timestamp": "2025-08-15T02:26:04.503661",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "communication",
+        "agent_id": "beta",
+        "sequence": 1
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224764657505",
+      "timestamp": "2025-08-15T02:26:04.657512",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "communication",
+        "duration_ms": 152.9956829239444,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224764745823",
+      "timestamp": "2025-08-15T02:26:04.745836",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 373.9982525668315,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224766004231",
+      "timestamp": "2025-08-15T02:26:06.004250",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "data_analysis",
+        "agent_id": "beta",
+        "sequence": 2
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224766040506",
+      "timestamp": "2025-08-15T02:26:06.040524",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "agent_id": "alpha",
+        "sequence": 3
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224766419602",
+      "timestamp": "2025-08-15T02:26:06.419609",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "duration_ms": 377.778982282824,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224766690562",
+      "timestamp": "2025-08-15T02:26:06.690570",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "data_analysis",
+        "duration_ms": 685.6274790492087,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224767752139",
+      "timestamp": "2025-08-15T02:26:07.752157",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "agent_id": "alpha",
+        "sequence": 4
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224767904444",
+      "timestamp": "2025-08-15T02:26:07.904451",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "duration_ms": 151.1266952127044,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224767938669",
+      "timestamp": "2025-08-15T02:26:07.938688",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "agent_id": "beta",
+        "sequence": 3
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224768636788",
+      "timestamp": "2025-08-15T02:26:08.636796",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 696.7267644244987,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224768809690",
+      "timestamp": "2025-08-15T02:26:08.809712",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "decision_making",
+        "agent_id": "alpha",
+        "sequence": 5
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224769014391",
+      "timestamp": "2025-08-15T02:26:09.014399",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "decision_making",
+        "duration_ms": 203.36950187963276,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224769285334",
+      "timestamp": "2025-08-15T02:26:09.285364",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "learning",
+        "agent_id": "beta",
+        "sequence": 4
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224769610050",
+      "timestamp": "2025-08-15T02:26:09.610053",
+      "event_type": "error",
+      "source": "agent_beta",
+      "data": {
+        "operation": "learning",
+        "error_message": "Simulated error in learning",
+        "agent_id": "beta"
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224769818796",
+      "timestamp": "2025-08-15T02:26:09.818812",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "task_execution",
+        "agent_id": "alpha",
+        "sequence": 6
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224770263357",
+      "timestamp": "2025-08-15T02:26:10.263365",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "task_execution",
+        "duration_ms": 443.1912465560185,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224770342125",
+      "timestamp": "2025-08-15T02:26:10.342143",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "agent_id": "beta",
+        "sequence": 5
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224770660571",
+      "timestamp": "2025-08-15T02:26:10.660580",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "duration_ms": 317.69899635247856,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224770989847",
+      "timestamp": "2025-08-15T02:26:10.989868",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "communication",
+        "agent_id": "alpha",
+        "sequence": 7
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224771571890",
+      "timestamp": "2025-08-15T02:26:11.571899",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "communication",
+        "duration_ms": 580.6886659477788,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224771635799",
+      "timestamp": "2025-08-15T02:26:11.635820",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "agent_id": "beta",
+        "sequence": 6
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224772072245",
+      "timestamp": "2025-08-15T02:26:12.072256",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "communication",
+        "agent_id": "alpha",
+        "sequence": 8
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224772136250",
+      "timestamp": "2025-08-15T02:26:12.136258",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "duration_ms": 499.1291074479142,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224772835461",
+      "timestamp": "2025-08-15T02:26:12.835584",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "agent_id": "beta",
+        "sequence": 7
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224772846163",
+      "timestamp": "2025-08-15T02:26:12.846171",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "communication",
+        "duration_ms": 773.0437447037596,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224773173936",
+      "timestamp": "2025-08-15T02:26:13.173940",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 337.16087533472086,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224773710110",
+      "timestamp": "2025-08-15T02:26:13.710131",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "learning",
+        "agent_id": "beta",
+        "sequence": 8
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224773795247",
+      "timestamp": "2025-08-15T02:26:13.795268",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "task_execution",
+        "agent_id": "alpha",
+        "sequence": 9
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224774111197",
+      "timestamp": "2025-08-15T02:26:14.111205",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "task_execution",
+        "duration_ms": 314.5582222876643,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224774403546",
+      "timestamp": "2025-08-15T02:26:14.403552",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "learning",
+        "duration_ms": 692.1213367889661,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224774913884",
+      "timestamp": "2025-08-15T02:26:14.913912",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "learning",
+        "agent_id": "alpha",
+        "sequence": 10
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224775098928",
+      "timestamp": "2025-08-15T02:26:15.098939",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "learning",
+        "duration_ms": 184.1202514405933,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224775712076",
+      "timestamp": "2025-08-15T02:26:15.712109",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "agent_id": "alpha",
+        "sequence": 11
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224775890061",
+      "timestamp": "2025-08-15T02:26:15.890082",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "agent_id": "beta",
+        "sequence": 9
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224775936105",
+      "timestamp": "2025-08-15T02:26:15.936116",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "data_analysis",
+        "duration_ms": 222.0151057819392,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224776203327",
+      "timestamp": "2025-08-15T02:26:16.203339",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "decision_making",
+        "duration_ms": 311.48423942615375,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224776570729",
+      "timestamp": "2025-08-15T02:26:16.570747",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "communication",
+        "agent_id": "beta",
+        "sequence": 10
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224776674379",
+      "timestamp": "2025-08-15T02:26:16.674388",
+      "event_type": "error",
+      "source": "agent_beta",
+      "data": {
+        "operation": "communication",
+        "error_message": "Simulated error in communication",
+        "agent_id": "beta"
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224776821016",
+      "timestamp": "2025-08-15T02:26:16.821038",
+      "event_type": "operation_started",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "agent_id": "alpha",
+        "sequence": 12
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224777010292",
+      "timestamp": "2025-08-15T02:26:17.010313",
+      "event_type": "operation_started",
+      "source": "agent_beta",
+      "data": {
+        "operation": "data_analysis",
+        "agent_id": "beta",
+        "sequence": 11
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_alpha_1755224777248647",
+      "timestamp": "2025-08-15T02:26:17.248657",
+      "event_type": "operation_completed",
+      "source": "agent_alpha",
+      "data": {
+        "operation": "planning",
+        "duration_ms": 426.279488012992,
+        "agent_id": "alpha",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "agent_beta_1755224777335842",
+      "timestamp": "2025-08-15T02:26:17.335851",
+      "event_type": "operation_completed",
+      "source": "agent_beta",
+      "data": {
+        "operation": "data_analysis",
+        "duration_ms": 323.96399804635,
+        "agent_id": "beta",
+        "success": true
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "error_monitor_1755224778695618",
+      "timestamp": "2025-08-15T02:26:18.695624",
+      "event_type": "alert_created",
+      "source": "error_monitor",
+      "data": {
+        "alert_id": "alert_1755224778695585",
+        "title": "High Error Rate",
+        "severity": "high",
+        "tags": {
+          "type": "error_rate",
+          "threshold": "15%"
+        }
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "performance_monitor_1755224778695726",
+      "timestamp": "2025-08-15T02:26:18.695732",
+      "event_type": "alert_created",
+      "source": "performance_monitor",
+      "data": {
+        "alert_id": "alert_1755224778695655",
+        "title": "Performance Degradation",
+        "severity": "medium",
+        "tags": {
+          "type": "performance",
+          "metric": "response_time"
+        }
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "resource_monitor_1755224778695761",
+      "timestamp": "2025-08-15T02:26:18.695764",
+      "event_type": "alert_created",
+      "source": "resource_monitor",
+      "data": {
+        "alert_id": "alert_1755224778695751",
+        "title": "Resource Usage Notice",
+        "severity": "low",
+        "tags": {
+          "type": "resource",
+          "metric": "memory"
+        }
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "error_monitor_1755224778695823",
+      "timestamp": "2025-08-15T02:26:18.695826",
+      "event_type": "alert_acknowledged",
+      "source": "error_monitor",
+      "data": {
+        "alert_id": "alert_1755224778695585",
+        "acknowledged_by": "demo_operator"
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    },
+    {
+      "event_id": "performance_monitor_1755224778695844",
+      "timestamp": "2025-08-15T02:26:18.695847",
+      "event_type": "alert_resolved",
+      "source": "performance_monitor",
+      "data": {
+        "alert_id": "alert_1755224778695655"
+      },
+      "trace_id": null,
+      "span_id": null,
+      "parent_span_id": null,
+      "duration_ms": null,
+      "tags": null
+    }
+  ],
+  "performance_report": {
+    "timestamp": "2025-08-15T02:26:19.204058",
+    "components": {},
+    "bottlenecks": [],
+    "summary": {
+      "total_operations": 0,
+      "total_bottlenecks": 0,
+      "high_severity_bottlenecks": 0
+    }
+  },
+  "bottlenecks": []
+}

@@ -1,0 +1,62 @@
+# Requirements for Control and Data Plane Separation Implementation
+
+# Core async and concurrency
+asyncio-mqtt>=0.13.0
+aiofiles>=23.2.1
+
+# Web framework for Control Plane API
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+
+# Data validation and serialization
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Database and persistence
+sqlite3  # Built-in Python module
+aiosqlite>=0.19.0
+
+# Testing framework
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-mock>=3.12.0
+
+# Logging and monitoring
+structlog>=23.2.0
+
+# Type hints and development
+typing-extensions>=4.8.0
+
+# JSON handling
+orjson>=3.9.10
+
+# UUID generation (built-in but explicit for clarity)
+uuid  # Built-in Python module
+
+# Threading and concurrency utilities
+concurrent-futures  # Built-in Python module
+threading  # Built-in Python module
+
+# Time and datetime utilities
+datetime  # Built-in Python module
+time  # Built-in Python module
+
+# Data structures
+dataclasses  # Built-in Python module (Python 3.7+)
+enum  # Built-in Python module
+
+# Abstract base classes
+abc  # Built-in Python module
+
+# Temporary file handling for tests
+tempfile  # Built-in Python module
+
+# Operating system interface
+os  # Built-in Python module
+
+# Pickle for serialization (if needed)
+pickle  # Built-in Python module
+
+# JSON for configuration and data exchange
+json  # Built-in Python module

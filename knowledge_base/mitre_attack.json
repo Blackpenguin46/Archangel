@@ -1,0 +1,50 @@
+[
+  {
+    "technique_id": "T1595",
+    "technique_name": "Active Scanning",
+    "tactic": "reconnaissance",
+    "description": "Adversaries may execute active reconnaissance scans to gather information that can be used during targeting.",
+    "platforms": [
+      "PRE"
+    ],
+    "data_sources": [
+      "Network Traffic"
+    ],
+    "mitigations": [
+      "M1056"
+    ],
+    "detection_methods": [
+      "Monitor network traffic for scanning patterns"
+    ],
+    "references": [
+      "https://attack.mitre.org/techniques/T1595/"
+    ],
+    "last_updated": "2025-08-16T16:48:08.111051"
+  },
+  {
+    "technique_id": "T1190",
+    "technique_name": "Exploit Public-Facing Application",
+    "tactic": "initial-access",
+    "description": "Adversaries may attempt to take advantage of a weakness in an Internet-facing computer or program using software, data, or commands in order to cause unintended or unanticipated behavior.",
+    "platforms": [
+      "Linux",
+      "Windows",
+      "macOS"
+    ],
+    "data_sources": [
+      "Application Log",
+      "Network Traffic"
+    ],
+    "mitigations": [
+      "M1048",
+      "M1030"
+    ],
+    "detection_methods": [
+      "Monitor application logs for exploitation attempts"
+    ],
+    "references": [
+      "https://attack.mitre.org/techniques/T1190/"
+    ],
+    "last_updated": "2025-08-16T16:48:08.111057"
+  }
+]

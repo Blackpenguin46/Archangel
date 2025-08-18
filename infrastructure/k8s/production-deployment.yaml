@@ -1,0 +1,754 @@
+# Archangel Production Kubernetes Deployment
+# Comprehensive production-ready deployment with scaling, load balancing, and persistent storage
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archangel-production-config
+  namespace: archangel
+  labels:
+    app: archangel
+    component: configuration
+    environment: production
+data:
+  # Core service configuration
+  core.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8888
+      workers: 4
+      max_connections: 1000
+      keepalive_timeout: 65
+    
+    database:
+      pool_size: 20
+      max_overflow: 30
+      pool_timeout: 30
+      pool_recycle: 3600
+    
+    redis:
+      max_connections: 100
+      retry_on_timeout: true
+      socket_keepalive: true
+    
+    logging:
+      level: INFO
+      format: json
+      structured: true
+    
+    monitoring:
+      metrics_enabled: true
+      health_check_interval: 30
+      performance_tracking: true
+    
+    security:
+      rate_limiting: true
+      cors_enabled: false
+      ssl_required: true
+
+  # Agent configuration
+  agents.yaml: |
+    agent:
+      decision_interval: 30
+      learning_enabled: true
+      ethics_enforcement: true
+      boundary_checks: true
+      anomaly_detection: true
+      max_memory_usage: "400Mi"
+      heartbeat_interval: 15
+    
+    coordination:
+      team_communication: true
+      intelligence_sharing: true
+      response_coordination: true
+      conflict_resolution: true
+    
+    performance:
+      batch_processing: true
+      async_operations: true
+      caching_enabled: true
+      optimization_level: "high"
+
+---
+# Production Storage Classes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: archangel-fast-ssd
+  labels:
+    app: archangel
+    component: storage
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: archangel-standard-ssd
+  labels:
+    app: archangel
+    component: storage
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "1000"
+  throughput: "125"
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# Persistent Volume Claims for Production
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: archangel-core-data-pvc
+  namespace: archangel
+  labels:
+    app: archangel
+    component: core
+    tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: archangel-fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: archangel-agents-shared-pvc
+  namespace: archangel
+  labels:
+    app: archangel
+    component: agents
+    tier: data
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: archangel-standard-ssd
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-production-pvc
+  namespace: archangel
+  labels:
+    app: prometheus
+    component: monitoring
+    tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: archangel-fast-ssd
+  resources:
+    requests:
+      storage: 200Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-production-pvc
+  namespace: archangel
+  labels:
+    app: grafana
+    component: visualization
+    tier: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: archangel-standard-ssd
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Production Core Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archangel-core-production
+  namespace: archangel
+  labels:
+    app: archangel
+    component: core
+    environment: production
+    version: v1.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "Production core API service with high availability"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: archangel
+      component: core
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: archangel
+        component: core
+        environment: production
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+        fluentd.org/parser: "json"
+        config.hash: "{{ .Values.configHash }}"
+    spec:
+      serviceAccountName: archangel-service-account
+      priorityClassName: archangel-critical
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL..."
+              until nc -z postgres-service 5432; do
+                echo "PostgreSQL not ready, waiting..."
+                sleep 2
+              done
+              echo "Waiting for Redis..."
+              until nc -z redis-service 6379; do
+                echo "Redis not ready, waiting..."
+                sleep 2
+              done
+              echo "Dependencies ready!"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+        
+        - name: database-migration
+          image: archangel:latest
+          command:
+            - python
+            - -m
+            - alembic
+            - upgrade
+            - head
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: database-url
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+      
+      containers:
+        - name: archangel-core
+          image: archangel:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: health
+              containerPort: 8889
+              protocol: TCP
+          
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: PROJECT_NAME
+              value: "archangel"
+            - name: CORE_HOST
+              value: "0.0.0.0"
+            - name: CORE_PORT
+              value: "8888"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: database-url
+            - name: REDIS_URL
+              value: "redis://redis-service:6379/0"
+            - name: PROMETHEUS_ENDPOINT
+              value: "http://prometheus-service:9090"
+            - name: ELASTICSEARCH_ENDPOINT
+              value: "http://elasticsearch-service:9200"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PYTHONPATH
+              value: "/opt/archangel"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: health
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+            successThreshold: 1
+          
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/archangel
+              readOnly: true
+            - name: data-volume
+              mountPath: /opt/archangel/data
+            - name: logs-volume
+              mountPath: /opt/archangel/logs
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: cache-volume
+              mountPath: /opt/archangel/cache
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+            seccompProfile:
+              type: RuntimeDefault
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: archangel-production-config
+            defaultMode: 0644
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: archangel-core-data-pvc
+        - name: logs-volume
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: tmp-volume
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: cache-volume
+          emptyDir:
+            sizeLimit: 500Mi
+      
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        node-type: compute
+      
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+      
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: ["archangel"]
+                  - key: component
+                    operator: In
+                    values: ["core"]
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values: ["compute"]
+
+---
+# Production Agent Deployment with Horizontal Pod Autoscaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archangel-agents-production
+  namespace: archangel
+  labels:
+    app: archangel
+    component: agents
+    environment: production
+    version: v1.0.0
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: archangel
+      component: agents
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: archangel
+        component: agents
+        environment: production
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: archangel-service-account
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      containers:
+        - name: archangel-agent
+          image: archangel-agent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9091
+              protocol: TCP
+            - name: health
+              containerPort: 8891
+              protocol: TCP
+          
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: AGENT_TYPE
+              value: "autonomous"
+            - name: CORE_ENDPOINT
+              value: "http://archangel-core-service:8888"
+            - name: AGENT_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DECISION_INTERVAL
+              value: "30"
+            - name: LEARNING_ENABLED
+              value: "true"
+            - name: ETHICS_ENFORCEMENT
+              value: "true"
+            - name: BOUNDARY_CHECKS
+              value: "true"
+            - name: ANOMALY_DETECTION
+              value: "true"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/archangel
+              readOnly: true
+            - name: shared-data-volume
+              mountPath: /opt/archangel/data
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: cache-volume
+              mountPath: /opt/archangel/cache
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: archangel-production-config
+        - name: shared-data-volume
+          persistentVolumeClaim:
+            claimName: archangel-agents-shared-pvc
+        - name: tmp-volume
+          emptyDir:
+            sizeLimit: 500Mi
+        - name: cache-volume
+          emptyDir:
+            sizeLimit: 200Mi
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["archangel"]
+                    - key: component
+                      operator: In
+                      values: ["agents"]
+                topologyKey: kubernetes.io/hostname
+
+---
+# Horizontal Pod Autoscaler for Agents
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: archangel-agents-production-hpa
+  namespace: archangel
+  labels:
+    app: archangel
+    component: autoscaling
+    environment: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: archangel-agents-production
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: agent_decision_rate
+        target:
+          type: AverageValue
+          averageValue: "10"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+      selectPolicy: Max
+
+---
+# Vertical Pod Autoscaler for Core Service
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: archangel-core-production-vpa
+  namespace: archangel
+  labels:
+    app: archangel
+    component: autoscaling
+    environment: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: archangel-core-production
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: archangel-core
+        minAllowed:
+          cpu: 500m
+          memory: 1Gi
+        maxAllowed:
+          cpu: 2000m
+          memory: 4Gi
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsAndLimits
+
+---
+# Pod Disruption Budgets
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: archangel-core-production-pdb
+  namespace: archangel
+  labels:
+    app: archangel
+    component: availability
+    environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: archangel
+      component: core
+      environment: production
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: archangel-agents-production-pdb
+  namespace: archangel
+  labels:
+    app: archangel
+    component: availability
+    environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: archangel
+      component: agents
+      environment: production

@@ -1,0 +1,49 @@
+[
+  {
+    "rule_id": "2c6fa4c6-c530-4880-b15e-4dd7d5970dbf",
+    "name": "Transitive Relationship Rule",
+    "description": "If A relates to B and B relates to C, then A may relate to C",
+    "inference_type": "transitive",
+    "conditions": [
+      {
+        "type": "path_exists",
+        "length": 2
+      },
+      {
+        "type": "no_direct_connection"
+      }
+    ],
+    "conclusions": [
+      {
+        "type": "create_relation",
+        "relation_type": "transitive"
+      }
+    ],
+    "confidence_threshold": 0.5,
+    "priority": 1,
+    "enabled": true,
+    "created_at": "2025-08-16T17:15:21.365594"
+  },
+  {
+    "rule_id": "b2b2d5f2-9fb3-4486-bd3a-da3ebdc22f47",
+    "name": "Entity Similarity Rule",
+    "description": "Entities with similar properties may have similar relationships",
+    "inference_type": "similarity",
+    "conditions": [
+      {
+        "type": "property_similarity",
+        "threshold": 0.7
+      }
+    ],
+    "conclusions": [
+      {
+        "type": "create_relation",
+        "relation_type": "similar_to"
+      }
+    ],
+    "confidence_threshold": 0.6,
+    "priority": 2,
+    "enabled": true,
+    "created_at": "2025-08-16T17:15:21.365599"
+  }
+]

@@ -1,0 +1,665 @@
+# Archangel Kubernetes Deployment Manifests
+# Complete deployment configuration for production Kubernetes environment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archangel-core
+  namespace: archangel
+  labels:
+    app: archangel
+    component: core
+    version: v1.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "Core API service for Archangel AI system"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: archangel
+      component: core
+  template:
+    metadata:
+      labels:
+        app: archangel
+        component: core
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+        fluentd.org/parser: "json"
+    spec:
+      serviceAccountName: archangel-service-account
+      priorityClassName: archangel-critical
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      initContainers:
+        - name: wait-for-db
+          image: postgres:14-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-service -U admin; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      containers:
+        - name: archangel-core
+          image: archangel:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8888
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: PROJECT_NAME
+              value: "archangel"
+            - name: CORE_HOST
+              value: "0.0.0.0"
+            - name: CORE_PORT
+              value: "8888"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: database-url
+            - name: REDIS_URL
+              value: "redis://redis-service:6379/0"
+            - name: PROMETHEUS_ENDPOINT
+              value: "http://prometheus-service:9090"
+            - name: ELASTICSEARCH_ENDPOINT
+              value: "http://elasticsearch-service:9200"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PYTHONPATH
+              value: "/opt/archangel"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/archangel
+              readOnly: true
+            - name: logs-volume
+              mountPath: /opt/archangel/logs
+            - name: tmp-volume
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+      volumes:
+        - name: config-volume
+          configMap:
+            name: archangel-config
+        - name: logs-volume
+          persistentVolumeClaim:
+            claimName: archangel-logs-pvc
+        - name: tmp-volume
+          emptyDir:
+            sizeLimit: 1Gi
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["archangel"]
+                    - key: component
+                      operator: In
+                      values: ["core"]
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archangel-agents
+  namespace: archangel
+  labels:
+    app: archangel
+    component: agents
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: archangel
+      component: agents
+  template:
+    metadata:
+      labels:
+        app: archangel
+        component: agents
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: archangel-service-account
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+        - name: archangel-agent
+          image: archangel-agent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9091
+              protocol: TCP
+          env:
+            - name: AGENT_TYPE
+              value: "autonomous"
+            - name: CORE_ENDPOINT
+              value: "http://archangel-core-service:8888"
+            - name: AGENT_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DECISION_INTERVAL
+              value: "30"
+            - name: LEARNING_ENABLED
+              value: "true"
+            - name: ETHICS_ENFORCEMENT
+              value: "true"
+            - name: BOUNDARY_CHECKS
+              value: "true"
+            - name: ANOMALY_DETECTION
+              value: "true"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/archangel
+              readOnly: true
+            - name: data-volume
+              mountPath: /opt/archangel/data
+            - name: tmp-volume
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config-volume
+          configMap:
+            name: archangel-agent-config
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: archangel-agents-pvc
+        - name: tmp-volume
+          emptyDir:
+            sizeLimit: 500Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["archangel"]
+                    - key: component
+                      operator: In
+                      values: ["agents"]
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: archangel
+  labels:
+    app: postgres
+    component: database
+spec:
+  serviceName: postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      component: database
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      securityContext:
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: archangel
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: postgres-password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - admin
+                - -d
+                - archangel
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - admin
+                - -d
+                - archangel
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: postgres-config
+              mountPath: /etc/postgresql
+              readOnly: true
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:latest
+          ports:
+            - name: metrics
+              containerPort: 9187
+              protocol: TCP
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://admin:$(POSTGRES_PASSWORD)@localhost:5432/archangel?sslmode=disable"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: postgres-password
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: postgres-config
+          configMap:
+            name: postgres-config
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          app: postgres
+          component: database
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: archangel
+  labels:
+    app: redis
+    component: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      component: cache
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: cache
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          command:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --maxmemory
+            - "256mb"
+            - --maxmemory-policy
+            - "allkeys-lru"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+        - name: redis-exporter
+          image: oliver006/redis_exporter:latest
+          ports:
+            - name: metrics
+              containerPort: 9121
+              protocol: TCP
+          env:
+            - name: REDIS_ADDR
+              value: "redis://localhost:6379"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: archangel
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+      component: monitoring
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: monitoring
+    spec:
+      serviceAccountName: archangel-service-account
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.40.0
+          ports:
+            - name: web
+              containerPort: 9090
+              protocol: TCP
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+            - '--storage.tsdb.retention.time=30d'
+            - '--web.enable-lifecycle'
+            - '--web.enable-admin-api'
+            - '--storage.tsdb.max-block-duration=2h'
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: prometheus-data
+              mountPath: /prometheus
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: archangel-monitoring-config
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: archangel
+  labels:
+    app: grafana
+    component: visualization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+      component: visualization
+  template:
+    metadata:
+      labels:
+        app: grafana
+        component: visualization
+    spec:
+      securityContext:
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:9.3.0
+          ports:
+            - name: web
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: archangel-secrets
+                  key: grafana-admin-password
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+            - name: GF_INSTALL_PLUGINS
+              value: "grafana-worldmap-panel,grafana-piechart-panel,grafana-clock-panel"
+            - name: GF_SECURITY_ALLOW_EMBEDDING
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: web
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            - name: grafana-config
+              mountPath: /etc/grafana/provisioning
+              readOnly: true
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+        - name: grafana-config
+          configMap:
+            name: grafana-config

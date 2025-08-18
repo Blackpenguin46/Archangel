@@ -1,0 +1,75 @@
+{
+  "name": "archangel-ui",
+  "version": "1.0.0",
+  "description": "Archangel AI Security Expert System - User Interface",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.11.56",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.7.4",
+    "web-vitals": "^2.1.4",
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "@mui/material": "^5.10.3",
+    "@mui/icons-material": "^5.10.3",
+    "@mui/x-charts": "^6.0.0",
+    "@mui/x-data-grid": "^6.6.0",
+    "@mui/lab": "^5.0.0-alpha.103",
+    "recharts": "^2.8.0",
+    "react-router-dom": "^6.3.0",
+    "socket.io-client": "^4.7.2",
+    "axios": "^1.4.0",
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21",
+    "@types/lodash": "^4.14.195",
+    "react-hot-toast": "^2.4.1",
+    "react-json-view": "^1.21.3",
+    "react-force-graph-2d": "^1.25.4",
+    "d3": "^7.8.5",
+    "@types/d3": "^7.4.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "test:all": "npm test -- --watchAll=false --coverage",
+    "test:ui": "ts-node src/tests/runAllTests.ts",
+    "test:performance": "npm test -- --testPathPattern=UIResponsiveness.test.tsx --watchAll=false",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/react-router-dom": "^5.3.3",
+    "eslint": "^8.23.0",
+    "prettier": "^2.7.1",
+    "ts-node": "^10.9.1"
+  },
+  "proxy": "http://localhost:8888"
+}

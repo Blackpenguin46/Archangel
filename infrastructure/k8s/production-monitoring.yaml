@@ -1,0 +1,938 @@
+# Archangel Production Monitoring and Alerting
+# Comprehensive monitoring, alerting, and observability for production environment
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-production-config
+  namespace: archangel
+  labels:
+    app: prometheus
+    component: monitoring
+    environment: production
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'archangel-production'
+        environment: 'production'
+    
+    rule_files:
+      - "alert_rules.yml"
+      - "recording_rules.yml"
+    
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager-service:9093
+          timeout: 10s
+          api_version: v2
+    
+    scrape_configs:
+      # Archangel Core Service
+      - job_name: 'archangel-core'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['archangel']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: archangel-core-service
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+        scrape_interval: 10s
+        scrape_timeout: 5s
+        metrics_path: /metrics
+      
+      # Archangel Agents
+      - job_name: 'archangel-agents'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['archangel']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: archangel
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            action: keep
+            regex: agents
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+        scrape_interval: 15s
+        scrape_timeout: 10s
+      
+      # Kubernetes API Server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+      
+      # Kubernetes Nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+      
+      # Kubernetes Pods
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+      
+      # Database Monitoring
+      - job_name: 'postgres-exporter'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+        scrape_interval: 30s
+      
+      # Redis Monitoring
+      - job_name: 'redis-exporter'
+        static_configs:
+          - targets: ['redis-exporter:9121']
+        scrape_interval: 30s
+      
+      # Node Exporter
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_endpoints_name]
+            regex: 'node-exporter'
+            action: keep
+        scrape_interval: 30s
+      
+      # Blackbox Exporter for External Monitoring
+      - job_name: 'blackbox'
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - targets:
+            - https://api.archangel.production/health
+            - https://archangel.production/health
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
+  
+  alert_rules.yml: |
+    groups:
+      - name: archangel.critical
+        interval: 30s
+        rules:
+          - alert: ArchangelCoreDown
+            expr: up{job="archangel-core"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              service: core
+            annotations:
+              summary: "Archangel core service is down"
+              description: "Archangel core service has been down for more than 1 minute. Immediate attention required."
+              runbook_url: "https://docs.archangel.local/runbooks/core-service-down"
+          
+          - alert: ArchangelCoreHighErrorRate
+            expr: rate(http_requests_total{job="archangel-core",status=~"5.."}[5m]) / rate(http_requests_total{job="archangel-core"}[5m]) > 0.05
+            for: 2m
+            labels:
+              severity: critical
+              service: core
+            annotations:
+              summary: "High error rate in Archangel core service"
+              description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+          
+          - alert: ArchangelCoreHighLatency
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="archangel-core"}[5m])) > 2
+            for: 5m
+            labels:
+              severity: warning
+              service: core
+            annotations:
+              summary: "High latency in Archangel core service"
+              description: "95th percentile latency is {{ $value }}s for the last 5 minutes."
+          
+          - alert: ArchangelAgentsDown
+            expr: count(up{job="archangel-agents"} == 1) < 2
+            for: 2m
+            labels:
+              severity: critical
+              service: agents
+            annotations:
+              summary: "Insufficient Archangel agents running"
+              description: "Only {{ $value }} agents are running. Minimum required: 2."
+          
+          - alert: ArchangelAgentHighMemoryUsage
+            expr: container_memory_usage_bytes{pod=~"archangel-agents-.*"} / container_spec_memory_limit_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              service: agents
+            annotations:
+              summary: "High memory usage in Archangel agent"
+              description: "Agent {{ $labels.pod }} memory usage is {{ $value | humanizePercentage }}."
+          
+          - alert: ArchangelAgentDecisionLatency
+            expr: histogram_quantile(0.95, rate(agent_decision_duration_seconds_bucket[5m])) > 10
+            for: 3m
+            labels:
+              severity: warning
+              service: agents
+            annotations:
+              summary: "High decision latency in Archangel agents"
+              description: "95th percentile decision latency is {{ $value }}s."
+      
+      - name: archangel.infrastructure
+        interval: 60s
+        rules:
+          - alert: DatabaseDown
+            expr: up{job="postgres-exporter"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              service: database
+            annotations:
+              summary: "PostgreSQL database is down"
+              description: "PostgreSQL database has been unreachable for more than 1 minute."
+          
+          - alert: DatabaseHighConnections
+            expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+            for: 5m
+            labels:
+              severity: warning
+              service: database
+            annotations:
+              summary: "High database connection usage"
+              description: "Database connection usage is {{ $value | humanizePercentage }}."
+          
+          - alert: RedisDown
+            expr: up{job="redis-exporter"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              service: redis
+            annotations:
+              summary: "Redis is down"
+              description: "Redis has been unreachable for more than 1 minute."
+          
+          - alert: RedisHighMemoryUsage
+            expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+              service: redis
+            annotations:
+              summary: "High Redis memory usage"
+              description: "Redis memory usage is {{ $value | humanizePercentage }}."
+          
+          - alert: KubernetesNodeNotReady
+            expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              service: kubernetes
+            annotations:
+              summary: "Kubernetes node not ready"
+              description: "Node {{ $labels.node }} has been not ready for more than 5 minutes."
+          
+          - alert: KubernetesPodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+            for: 5m
+            labels:
+              severity: warning
+              service: kubernetes
+            annotations:
+              summary: "Pod is crash looping"
+              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping."
+          
+          - alert: KubernetesPersistentVolumeUsageHigh
+            expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              service: storage
+            annotations:
+              summary: "High persistent volume usage"
+              description: "PV usage is {{ $value | humanizePercentage }} on {{ $labels.persistentvolumeclaim }}."
+      
+      - name: archangel.performance
+        interval: 30s
+        rules:
+          - alert: HighCPUUsage
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+            for: 5m
+            labels:
+              severity: warning
+              service: infrastructure
+            annotations:
+              summary: "High CPU usage"
+              description: "CPU usage is {{ $value }}% on {{ $labels.instance }}."
+          
+          - alert: HighMemoryUsage
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+              service: infrastructure
+            annotations:
+              summary: "High memory usage"
+              description: "Memory usage is {{ $value }}% on {{ $labels.instance }}."
+          
+          - alert: DiskSpaceUsageHigh
+            expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+              service: infrastructure
+            annotations:
+              summary: "High disk usage"
+              description: "Disk usage is {{ $value }}% on {{ $labels.instance }} mount {{ $labels.mountpoint }}."
+  
+  recording_rules.yml: |
+    groups:
+      - name: archangel.performance.rules
+        interval: 30s
+        rules:
+          - record: archangel:core_request_rate
+            expr: rate(http_requests_total{job="archangel-core"}[5m])
+          
+          - record: archangel:core_error_rate
+            expr: rate(http_requests_total{job="archangel-core",status=~"5.."}[5m]) / rate(http_requests_total{job="archangel-core"}[5m])
+          
+          - record: archangel:core_latency_p95
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="archangel-core"}[5m]))
+          
+          - record: archangel:core_latency_p99
+            expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="archangel-core"}[5m]))
+          
+          - record: archangel:agents_active_count
+            expr: count(up{job="archangel-agents"} == 1)
+          
+          - record: archangel:agents_decision_rate
+            expr: rate(agent_decisions_total[5m])
+          
+          - record: archangel:agents_memory_usage_percent
+            expr: container_memory_usage_bytes{pod=~"archangel-agents-.*"} / container_spec_memory_limit_bytes * 100
+          
+          - record: archangel:database_connection_usage_percent
+            expr: pg_stat_database_numbackends / pg_settings_max_connections * 100
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-production
+  namespace: archangel
+  labels:
+    app: prometheus
+    component: monitoring
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: prometheus
+      component: monitoring
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: monitoring
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: archangel-service-account
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.45.0
+          ports:
+            - name: web
+              containerPort: 9090
+              protocol: TCP
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+            - '--storage.tsdb.retention.time=30d'
+            - '--storage.tsdb.retention.size=50GB'
+            - '--web.enable-lifecycle'
+            - '--web.enable-admin-api'
+            - '--storage.tsdb.max-block-duration=2h'
+            - '--storage.tsdb.min-block-duration=2h'
+            - '--web.external-url=https://prometheus.archangel.production'
+            - '--web.route-prefix=/'
+            - '--log.level=info'
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: prometheus-data
+              mountPath: /prometheus
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-production-config
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-production-pvc
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["prometheus"]
+                topologyKey: kubernetes.io/hostname
+
+---
+# Alertmanager Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-production-config
+  namespace: archangel
+  labels:
+    app: alertmanager
+    component: alerting
+    environment: production
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'smtp.archangel.local:587'
+      smtp_from: 'alerts@archangel.production'
+      smtp_auth_username: 'alerts@archangel.production'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp-password'
+      slack_api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+    
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+    
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'default'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          group_wait: 5s
+          repeat_interval: 30m
+        
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+          group_wait: 30s
+          repeat_interval: 2h
+        
+        - match:
+            service: core
+          receiver: 'core-service-alerts'
+          group_wait: 5s
+        
+        - match:
+            service: agents
+          receiver: 'agents-service-alerts'
+    
+    receivers:
+      - name: 'default'
+        email_configs:
+          - to: 'ops-team@archangel.local'
+            subject: '[Archangel] {{ .GroupLabels.alertname }}'
+            body: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+              {{ end }}
+      
+      - name: 'critical-alerts'
+        email_configs:
+          - to: 'oncall@archangel.local'
+            subject: '[CRITICAL] Archangel Production Alert'
+            body: |
+              CRITICAL ALERT - Immediate attention required
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Runbook: {{ .Annotations.runbook_url }}
+              Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+              {{ end }}
+        slack_configs:
+          - channel: '#alerts-critical'
+            title: 'Critical Alert - Archangel Production'
+            text: |
+              {{ range .Alerts }}
+              *{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              {{ end }}
+            color: 'danger'
+        pagerduty_configs:
+          - routing_key_file: '/etc/alertmanager/secrets/pagerduty-key'
+            description: '{{ .GroupLabels.alertname }} - {{ .CommonAnnotations.summary }}'
+      
+      - name: 'warning-alerts'
+        email_configs:
+          - to: 'ops-team@archangel.local'
+            subject: '[WARNING] Archangel Production Alert'
+        slack_configs:
+          - channel: '#alerts-warning'
+            title: 'Warning Alert - Archangel Production'
+            color: 'warning'
+      
+      - name: 'core-service-alerts'
+        email_configs:
+          - to: 'core-team@archangel.local'
+            subject: '[Core Service] Archangel Alert'
+        slack_configs:
+          - channel: '#core-service-alerts'
+            title: 'Core Service Alert'
+      
+      - name: 'agents-service-alerts'
+        email_configs:
+          - to: 'agents-team@archangel.local'
+            subject: '[Agents Service] Archangel Alert'
+        slack_configs:
+          - channel: '#agents-service-alerts'
+            title: 'Agents Service Alert'
+    
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'cluster', 'service']
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-production
+  namespace: archangel
+  labels:
+    app: alertmanager
+    component: alerting
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: alertmanager
+      component: alerting
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+        component: alerting
+        environment: production
+    spec:
+      serviceAccountName: archangel-service-account
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        fsGroup: 65534
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.26.0
+          ports:
+            - name: web
+              containerPort: 9093
+              protocol: TCP
+          args:
+            - '--config.file=/etc/alertmanager/alertmanager.yml'
+            - '--storage.path=/alertmanager'
+            - '--web.external-url=https://alertmanager.archangel.production'
+            - '--cluster.advertise-address=0.0.0.0:9093'
+            - '--cluster.listen-address=0.0.0.0:9094'
+            - '--log.level=info'
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: alertmanager-config
+              mountPath: /etc/alertmanager
+              readOnly: true
+            - name: alertmanager-secrets
+              mountPath: /etc/alertmanager/secrets
+              readOnly: true
+            - name: alertmanager-data
+              mountPath: /alertmanager
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: alertmanager-config
+          configMap:
+            name: alertmanager-production-config
+        - name: alertmanager-secrets
+          secret:
+            secretName: alertmanager-secrets
+        - name: alertmanager-data
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+
+---
+# Grafana Production Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-production-config
+  namespace: archangel
+  labels:
+    app: grafana
+    component: visualization
+    environment: production
+data:
+  grafana.ini: |
+    [server]
+    protocol = http
+    http_port = 3000
+    domain = grafana.archangel.production
+    root_url = https://grafana.archangel.production
+    
+    [database]
+    type = postgres
+    host = postgres-service:5432
+    name = grafana
+    user = grafana
+    password = $__file{/etc/secrets/grafana-db-password}
+    
+    [security]
+    admin_user = admin
+    admin_password = $__file{/etc/secrets/grafana-admin-password}
+    secret_key = $__file{/etc/secrets/grafana-secret-key}
+    
+    [users]
+    allow_sign_up = false
+    allow_org_create = false
+    auto_assign_org = true
+    auto_assign_org_role = Viewer
+    
+    [auth]
+    disable_login_form = false
+    disable_signout_menu = false
+    
+    [auth.ldap]
+    enabled = true
+    config_file = /etc/grafana/ldap.toml
+    
+    [smtp]
+    enabled = true
+    host = smtp.archangel.local:587
+    user = grafana@archangel.production
+    password = $__file{/etc/secrets/smtp-password}
+    from_address = grafana@archangel.production
+    from_name = Archangel Grafana
+    
+    [alerting]
+    enabled = true
+    execute_alerts = true
+    
+    [unified_alerting]
+    enabled = true
+    
+    [log]
+    mode = console
+    level = info
+    
+    [metrics]
+    enabled = true
+    
+    [feature_toggles]
+    enable = ngalert
+  
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service:9090
+        isDefault: true
+        editable: false
+        jsonData:
+          timeInterval: 15s
+          queryTimeout: 60s
+          httpMethod: POST
+      
+      - name: Alertmanager
+        type: alertmanager
+        access: proxy
+        url: http://alertmanager-service:9093
+        editable: false
+        jsonData:
+          implementation: prometheus
+  
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'archangel-dashboards'
+        orgId: 1
+        folder: 'Archangel'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
+
+---
+# Services for Monitoring Stack
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: archangel
+  labels:
+    app: prometheus
+    component: monitoring
+    environment: production
+spec:
+  type: ClusterIP
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: prometheus
+    component: monitoring
+    environment: production
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-service
+  namespace: archangel
+  labels:
+    app: alertmanager
+    component: alerting
+    environment: production
+spec:
+  type: ClusterIP
+  ports:
+    - name: web
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
+    - name: cluster
+      port: 9094
+      targetPort: 9094
+      protocol: TCP
+  selector:
+    app: alertmanager
+    component: alerting
+    environment: production
+
+---
+# Health Check and Uptime Monitoring
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: health-check-monitoring
+  namespace: archangel
+  labels:
+    app: archangel
+    component: monitoring
+    monitoring-type: health-check
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: archangel
+            component: monitoring
+            monitoring-type: health-check
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: health-checker
+              image: curlimages/curl:8.1.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Check core service health
+                  if ! curl -f -s --max-time 10 "http://archangel-core-service:8888/health"; then
+                    echo "Core service health check failed"
+                    exit 1
+                  fi
+                  
+                  # Check agents service health
+                  if ! curl -f -s --max-time 5 "http://archangel-agents-service:8891/health"; then
+                    echo "Agents service health check failed"
+                    exit 1
+                  fi
+                  
+                  # Check Prometheus
+                  if ! curl -f -s --max-time 10 "http://prometheus-service:9090/-/ready"; then
+                    echo "Prometheus health check failed"
+                    exit 1
+                  fi
+                  
+                  echo "All services healthy"
+              resources:
+                requests:
+                  memory: "32Mi"
+                  cpu: "10m"
+                limits:
+                  memory: "64Mi"
+                  cpu: "50m"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities:
+                  drop:
+                    - ALL

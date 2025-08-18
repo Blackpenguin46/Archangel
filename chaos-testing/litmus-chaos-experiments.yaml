@@ -1,0 +1,776 @@
+# Litmus Chaos Engineering Experiments for Archangel
+# Comprehensive fault injection testing for infrastructure resilience
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-admin
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus-admin
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events", "configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets", "daemonsets"]
+    verbs: ["get", "list", "patch", "update", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus-admin
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus-admin
+subjects:
+  - kind: ServiceAccount
+    name: litmus-admin
+    namespace: litmus
+
+---
+# Pod Failure Experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: archangel-pod-failure
+  namespace: litmus
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-failure
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "60"
+    - name: CHAOS_INTERVAL
+      value: "10"
+    - name: FORCE
+      value: "true"
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+    - name: TARGET_CONTAINER
+      value: ""
+    - name: TARGET_PODS
+      value: ""
+    - name: NODE_LABEL
+      value: ""
+    - name: SEQUENCE
+      value: "parallel"
+    labels:
+      name: archangel-pod-failure
+      app.kubernetes.io/name: litmus
+      app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+# Network Partition Experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: archangel-network-partition
+  namespace: litmus
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]  
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-network-partition
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "120"
+    - name: NETWORK_INTERFACE
+      value: "eth0"
+    - name: NETWORK_PACKET_LOSS_PERCENTAGE
+      value: "100"
+    - name: DESTINATION_IPS
+      value: ""
+    - name: DESTINATION_HOSTS
+      value: ""
+    - name: CONTAINER_RUNTIME
+      value: "containerd"
+    - name: SOCKET_PATH
+      value: "/run/containerd/containerd.sock"
+    labels:
+      name: archangel-network-partition
+      app.kubernetes.io/name: litmus
+      app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+# CPU Stress Experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: archangel-cpu-stress
+  namespace: litmus
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-cpu-hog
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "180"
+    - name: CPU_CORES
+      value: "1"
+    - name: CPU_LOAD
+      value: "100"
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+    - name: CONTAINER_RUNTIME
+      value: "containerd"
+    - name: SOCKET_PATH
+      value: "/run/containerd/containerd.sock"
+    labels:
+      name: archangel-cpu-stress
+      app.kubernetes.io/name: litmus
+      app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+# Memory Stress Experiment  
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: archangel-memory-stress
+  namespace: litmus
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-memory-hog
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "180"
+    - name: MEMORY_CONSUMPTION
+      value: "500"
+    - name: NUMBER_OF_WORKERS
+      value: "1"
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+    - name: CONTAINER_RUNTIME
+      value: "containerd"
+    - name: SOCKET_PATH
+      value: "/run/containerd/containerd.sock"
+    labels:
+      name: archangel-memory-stress
+      app.kubernetes.io/name: litmus
+      app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+# Disk I/O Stress Experiment
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: archangel-disk-stress
+  namespace: litmus
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name disk-fill
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "180"
+    - name: FILL_PERCENTAGE
+      value: "80"
+    - name: DATA_BLOCK_SIZE
+      value: "256"
+    - name: EPHEMERAL_STORAGE_MEBIBYTES
+      value: "1000"
+    - name: CONTAINER_RUNTIME
+      value: "containerd"
+    - name: SOCKET_PATH
+      value: "/run/containerd/containerd.sock"
+    labels:
+      name: archangel-disk-stress
+      app.kubernetes.io/name: litmus
+      app.kubernetes.io/part-of: archangel-chaos-testing
+
+---
+# Comprehensive Chaos Engine for Archangel Core Services
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: archangel-core-chaos
+  namespace: archangel
+  labels:
+    instance: archangel-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  engineState: 'active'
+  appinfo:
+    appns: 'archangel'
+    applabel: 'app=archangel,component=core'
+    appkind: 'deployment'
+  chaosServiceAccount: litmus-admin
+  
+  # Monitoring and observability
+  monitoring: true
+  
+  # Job cleanup policy
+  jobCleanUpPolicy: 'retain'
+  
+  # Experiment sequence
+  experiments:
+    # Pod failure testing
+    - name: archangel-pod-failure
+      spec:
+        components:
+          env:
+            # Kill 30% of pods
+            - name: PODS_AFFECTED_PERC
+              value: '30'
+            # Total chaos duration: 2 minutes
+            - name: TOTAL_CHAOS_DURATION
+              value: '120'
+            # Kill interval: 20 seconds
+            - name: CHAOS_INTERVAL
+              value: '20'
+            # Force kill (don't wait for graceful shutdown)
+            - name: FORCE
+              value: 'true'
+        probe:
+          # HTTP probe to check service availability
+          - name: "core-api-health-check"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 5
+              probePollingInterval: 2
+            httpProbe/inputs:
+              url: "http://archangel-core-service:8888/health"
+              insecureSkipTLS: false
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+          
+          # Command probe to check internal metrics
+          - name: "prometheus-metrics-check"
+            type: "cmdProbe"
+            mode: "Edge"
+            runProperties:
+              probeTimeout: 30
+              retry: 3
+              interval: 10
+            cmdProbe/inputs:
+              command: "curl -f http://archangel-core-service:8888/metrics"
+              source:
+                image: "curlimages/curl:latest"
+                inheritInputs: true
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "archangel_"
+
+    # CPU stress testing
+    - name: archangel-cpu-stress
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '240'
+            - name: CPU_CORES
+              value: '2'
+            - name: CPU_LOAD
+              value: '90'
+            - name: PODS_AFFECTED_PERC
+              value: '50'
+        probe:
+          # Check if service remains responsive under load
+          - name: "load-response-check"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 30
+              retry: 2
+              interval: 15
+            httpProbe/inputs:
+              url: "http://archangel-core-service:8888/health"
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+
+    # Memory stress testing
+    - name: archangel-memory-stress
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '240'
+            - name: MEMORY_CONSUMPTION
+              value: '1024'  # 1GB
+            - name: PODS_AFFECTED_PERC
+              value: '50'
+        probe:
+          # Monitor memory-related metrics
+          - name: "memory-utilization-check"
+            type: "promProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              interval: 30
+            promProbe/inputs:
+              endpoint: "http://prometheus-service:9090"
+              query: "container_memory_usage_bytes{pod=~'archangel-core.*'}"
+              comparator:
+                criteria: "<"
+                value: "2147483648"  # 2GB limit
+
+---
+# Chaos Engine for Monitoring Stack
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: archangel-monitoring-chaos
+  namespace: archangel
+  labels:
+    instance: monitoring-chaos
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  engineState: 'active'
+  appinfo:
+    appns: 'archangel'
+    applabel: 'app=prometheus'
+    appkind: 'deployment'
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: 'retain'
+  
+  experiments:
+    # Network partition for monitoring isolation
+    - name: archangel-network-partition
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '180'
+            - name: NETWORK_INTERFACE
+              value: 'eth0'
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: '50'
+        probe:
+          # Check if monitoring recovers after network issues
+          - name: "prometheus-recovery-check"
+            type: "httpProbe"
+            mode: "SOT"  # Start of Test
+            runProperties:
+              probeTimeout: 60
+              retry: 5
+              interval: 10
+            httpProbe/inputs:
+              url: "http://prometheus-service:9090/-/ready"
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+
+    # Disk stress for metrics storage
+    - name: archangel-disk-stress
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '300'
+            - name: FILL_PERCENTAGE
+              value: '70'
+            - name: EPHEMERAL_STORAGE_MEBIBYTES
+              value: '2000'
+        probe:
+          # Ensure metrics are still being collected
+          - name: "metrics-collection-check"
+            type: "promProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 15
+              interval: 30
+            promProbe/inputs:
+              endpoint: "http://prometheus-service:9090"
+              query: "up{job='archangel-core'}"
+              comparator:
+                criteria: ">"
+                value: "0"
+
+---
+# Chaos Scheduler for Automated Testing
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosSchedule
+metadata:
+  name: archangel-chaos-schedule
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  # Run chaos tests every 6 hours during business hours (UTC)
+  schedule:
+    now: false
+    once:
+      # Run immediately when deployed (for testing)
+      executionTime: "2024-01-01T00:00:00Z"
+    repeat:
+      timeRange:
+        startTime: "08:00"   # 8 AM UTC
+        endTime: "18:00"     # 6 PM UTC
+      properties:
+        minChaosInterval: "6h"  # Minimum 6 hours between chaos tests
+    
+    # Include weekdays only
+    includedDays: "Mon,Tue,Wed,Thu,Fri"
+    
+    # Exclude certain dates (holidays, maintenance windows)
+    excludedDates: "2024-12-25,2024-01-01"
+    
+    # Exclude certain times (during backups, deployments)
+    excludedTimes:
+      - startTime: "02:00"
+        endTime: "04:00"
+  
+  # Chaos engine template
+  engineTemplateSpec:
+    appinfo:
+      appns: 'archangel'
+      applabel: 'app=archangel'
+      appkind: 'deployment'
+    chaosServiceAccount: litmus-admin
+    monitoring: true
+    jobCleanUpPolicy: 'retain'
+    
+    experiments:
+      # Lightweight pod failure test
+      - name: archangel-pod-failure
+        spec:
+          components:
+            env:
+              - name: TOTAL_CHAOS_DURATION
+                value: '60'
+              - name: CHAOS_INTERVAL
+                value: '30'
+              - name: FORCE
+                value: 'false'  # Graceful shutdown
+              - name: PODS_AFFECTED_PERC
+                value: '25'     # Only 25% of pods
+          probe:
+            - name: "scheduled-health-check"
+              type: "httpProbe"
+              mode: "Continuous"
+              runProperties:
+                probeTimeout: 10
+                retry: 3
+                interval: 5
+              httpProbe/inputs:
+                url: "http://archangel-core-service:8888/health"
+                method:
+                  get:
+                    criteria: ==
+                    responseCode: "200"
+
+---
+# Chaos Result Collector
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chaos-result-collector
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+spec:
+  # Collect results every hour
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: litmus-admin
+          containers:
+          - name: collector
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Collecting chaos test results..."
+              
+              # Get all chaos results
+              kubectl get chaosresults -n archangel -o json > /tmp/chaos-results.json
+              
+              # Extract key metrics
+              TOTAL_EXPERIMENTS=$(kubectl get chaosresults -n archangel --no-headers | wc -l)
+              PASSED_EXPERIMENTS=$(kubectl get chaosresults -n archangel -o jsonpath='{.items[?(@.status.experimentstatus.verdict=="Pass")].metadata.name}' | wc -w)
+              FAILED_EXPERIMENTS=$(kubectl get chaosresults -n archangel -o jsonpath='{.items[?(@.status.experimentstatus.verdict=="Fail")].metadata.name}' | wc -w)
+              
+              echo "Chaos Testing Summary:"
+              echo "Total Experiments: $TOTAL_EXPERIMENTS"
+              echo "Passed: $PASSED_EXPERIMENTS"
+              echo "Failed: $FAILED_EXPERIMENTS"
+              
+              # Create summary ConfigMap
+              kubectl create configmap chaos-summary \
+                --from-literal=total="$TOTAL_EXPERIMENTS" \
+                --from-literal=passed="$PASSED_EXPERIMENTS" \
+                --from-literal=failed="$FAILED_EXPERIMENTS" \
+                --from-literal=timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                -n litmus --dry-run=client -o yaml | kubectl apply -f -
+              
+              echo "Results collected and stored in chaos-summary ConfigMap"
+          restartPolicy: OnFailure
+
+---
+# Chaos Dashboard Configuration (if using Litmus Portal)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-dashboard-config
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/part-of: archangel-chaos-testing
+data:
+  config.yaml: |
+    # Chaos Dashboard Configuration
+    dashboard:
+      title: "Archangel Chaos Engineering Dashboard"
+      refresh_interval: 30s
+      
+    # Experiment categories
+    categories:
+      - name: "Pod Chaos"
+        experiments:
+          - "archangel-pod-failure"
+      - name: "Resource Stress"
+        experiments:
+          - "archangel-cpu-stress"
+          - "archangel-memory-stress"
+          - "archangel-disk-stress"
+      - name: "Network Chaos"
+        experiments:
+          - "archangel-network-partition"
+    
+    # Notification settings
+    notifications:
+      enabled: true
+      slack:
+        webhook_url: ""  # To be configured
+        channel: "#archangel-alerts"
+      
+    # Reporting
+    reports:
+      enabled: true
+      retention_days: 30
+      export_formats:
+        - "json"
+        - "csv"
+        - "pdf"
+    
+    # Security settings
+    security:
+      rbac_enabled: true
+      audit_logs: true
+      encryption_at_rest: true

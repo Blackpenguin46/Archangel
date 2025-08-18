@@ -1,0 +1,86 @@
+[
+  {
+    "intel_id": "b4df3e92-90ba-4916-94b3-fc64dd4bdcd7",
+    "source": "demo_threat_feed",
+    "intel_type": "technique_update",
+    "technique_id": "T1595",
+    "iocs": [
+      "192.168.1.100",
+      "scanner.exe"
+    ],
+    "ttps": [
+      "port_scanning",
+      "service_enumeration"
+    ],
+    "confidence_score": 0.9,
+    "severity": "medium",
+    "description": "New scanning tools observed in the wild",
+    "references": [
+      "https://demo.threat-intel.com/report1"
+    ],
+    "timestamp": "2025-08-16T17:15:42.952483"
+  },
+  {
+    "intel_id": "5e5122eb-6d31-4456-b899-21eb1468178a",
+    "source": "demo_security_vendor",
+    "intel_type": "vulnerability_report",
+    "technique_id": "T1190",
+    "iocs": [
+      "exploit.php",
+      "malicious.js"
+    ],
+    "ttps": [
+      "sql_injection",
+      "xss"
+    ],
+    "confidence_score": 0.95,
+    "severity": "high",
+    "description": "Critical web application vulnerabilities being exploited",
+    "references": [
+      "https://demo.vendor.com/advisory"
+    ],
+    "timestamp": "2025-08-16T17:15:42.952489"
+  },
+  {
+    "intel_id": "451ff2ef-78ea-47eb-b360-c78c5f6abe9a",
+    "source": "demo_threat_feed",
+    "intel_type": "technique_update",
+    "technique_id": "T1595",
+    "iocs": [
+      "192.168.1.100",
+      "scanner.exe"
+    ],
+    "ttps": [
+      "port_scanning",
+      "service_enumeration"
+    ],
+    "confidence_score": 0.9,
+    "severity": "medium",
+    "description": "New scanning tools observed in the wild",
+    "references": [
+      "https://demo.threat-intel.com/report1"
+    ],
+    "timestamp": "2025-08-16T17:16:48.020787"
+  },
+  {
+    "intel_id": "229dac7c-865c-4935-9275-ede1a7409030",
+    "source": "demo_security_vendor",
+    "intel_type": "vulnerability_report",
+    "technique_id": "T1190",
+    "iocs": [
+      "exploit.php",
+      "malicious.js"
+    ],
+    "ttps": [
+      "sql_injection",
+      "xss"
+    ],
+    "confidence_score": 0.95,
+    "severity": "high",
+    "description": "Critical web application vulnerabilities being exploited",
+    "references": [
+      "https://demo.vendor.com/advisory"
+    ],
+    "timestamp": "2025-08-16T17:16:48.020806"
+  }
+]

@@ -1,0 +1,340 @@
+---
+# Ansible Inventory for Archangel Infrastructure
+# Dynamic inventory configuration for different environments
+
+all:
+  vars:
+    # Global variables
+    project_name: "archangel"
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_user: "root"
+    
+    # Network configuration
+    network_prefix: "192.168"
+    networks:
+      dmz:
+        subnet: "{{ network_prefix }}.10.0/24"
+        gateway: "{{ network_prefix }}.10.1"
+        vlan_id: 10
+      internal:
+        subnet: "{{ network_prefix }}.20.0/24"
+        gateway: "{{ network_prefix }}.20.1"
+        vlan_id: 20
+      management:
+        subnet: "{{ network_prefix }}.40.0/24"
+        gateway: "{{ network_prefix }}.40.1"
+        vlan_id: 40
+      deception:
+        subnet: "{{ network_prefix }}.50.0/24"
+        gateway: "{{ network_prefix }}.50.1"
+        vlan_id: 50
+    
+    # Service configuration
+    services:
+      prometheus:
+        port: 9090
+        retention: "15d"
+        scrape_interval: "15s"
+      grafana:
+        port: 3000
+        admin_password: "archangel_admin"
+        plugins:
+          - grafana-worldmap-panel
+          - grafana-piechart-panel
+      elasticsearch:
+        port: 9200
+        heap_size: "1g"
+        cluster_name: "archangel-logs"
+      kibana:
+        port: 5601
+        elasticsearch_url: "http://elasticsearch:9200"
+      logstash:
+        port: 5044
+        heap_size: "512m"
+        pipeline_workers: 2
+    
+    # Security configuration
+    security:
+      enable_firewall: true
+      enable_fail2ban: true
+      ssh_port: 22
+      allowed_ssh_users:
+        - "archangel"
+        - "admin"
+      firewall_rules:
+        - port: 22
+          protocol: tcp
+          source: "0.0.0.0/0"
+        - port: 80
+          protocol: tcp
+          source: "0.0.0.0/0"
+        - port: 443
+          protocol: tcp
+          source: "0.0.0.0/0"
+        - port: 3000
+          protocol: tcp
+          source: "{{ networks.management.subnet }}"
+        - port: 9090
+          protocol: tcp
+          source: "{{ networks.management.subnet }}"
+        - port: 5601
+          protocol: tcp
+          source: "{{ networks.management.subnet }}"
+
+  children:
+    # Development Environment
+    development:
+      vars:
+        environment: "dev"
+        enable_debug: true
+        log_level: "DEBUG"
+        agent_replicas: 2
+        resource_limits:
+          small:
+            memory: "256Mi"
+            cpu: "0.5"
+          medium:
+            memory: "512Mi"
+            cpu: "1"
+          large:
+            memory: "1Gi"
+            cpu: "2"
+      
+      hosts:
+        localhost:
+          ansible_connection: local
+          ansible_host: 127.0.0.1
+          
+          # Service IP assignments
+          services_ips:
+            core: "{{ networks.management.gateway | regex_replace('\\.1$', '.10') }}"
+            prometheus: "{{ networks.management.gateway | regex_replace('\\.1$', '.20') }}"
+            grafana: "{{ networks.management.gateway | regex_replace('\\.1$', '.21') }}"
+            elasticsearch: "{{ networks.management.gateway | regex_replace('\\.1$', '.30') }}"
+            kibana: "{{ networks.management.gateway | regex_replace('\\.1$', '.31') }}"
+            logstash: "{{ networks.management.gateway | regex_replace('\\.1$', '.32') }}"
+            mysql: "{{ networks.internal.gateway | regex_replace('\\.1$', '.10') }}"
+            postgresql: "{{ networks.internal.gateway | regex_replace('\\.1$', '.11') }}"
+            nginx: "{{ networks.dmz.gateway | regex_replace('\\.1$', '.10') }}"
+            wordpress: "{{ networks.dmz.gateway | regex_replace('\\.1$', '.20') }}"
+          
+          # Agent configuration
+          agents:
+            - id: "agent-001"
+              type: "red_team"
+              ip: "{{ networks.internal.gateway | regex_replace('\\.1$', '.100') }}"
+              capabilities: ["reconnaissance", "exploitation", "lateral_movement"]
+            - id: "agent-002"
+              type: "blue_team"
+              ip: "{{ networks.internal.gateway | regex_replace('\\.1$', '.101') }}"
+              capabilities: ["monitoring", "analysis", "response"]
+          
+          # Honeypot configuration
+          honeypots:
+            - name: "ssh-honeypot"
+              type: "cowrie"
+              ip: "{{ networks.deception.gateway | regex_replace('\\.1$', '.10') }}"
+              ports: [22, 2222]
+            - name: "web-honeypot"
+              type: "dionaea"
+              ip: "{{ networks.deception.gateway | regex_replace('\\.1$', '.20') }}"
+              ports: [80, 443]
+
+    # Staging Environment
+    staging:
+      vars:
+        environment: "staging"
+        enable_debug: false
+        log_level: "INFO"
+        agent_replicas: 3
+        enable_monitoring: true
+        enable_security_scanning: true
+        resource_limits:
+          small:
+            memory: "512Mi"
+            cpu: "0.5"
+          medium:
+            memory: "1Gi"
+            cpu: "1"
+          large:
+            memory: "2Gi"
+            cpu: "2"
+      
+      hosts:
+        staging-server:
+          ansible_host: "{{ staging_host | default('staging.archangel.local') }}"
+          ansible_user: "archangel"
+          ansible_ssh_private_key_file: "~/.ssh/archangel_staging"
+          
+          services_ips:
+            core: "{{ networks.management.gateway | regex_replace('\\.1$', '.10') }}"
+            prometheus: "{{ networks.management.gateway | regex_replace('\\.1$', '.20') }}"
+            grafana: "{{ networks.management.gateway | regex_replace('\\.1$', '.21') }}"
+            elasticsearch: "{{ networks.management.gateway | regex_replace('\\.1$', '.30') }}"
+            alertmanager: "{{ networks.management.gateway | regex_replace('\\.1$', '.22') }}"
+
+    # Production Environment
+    production:
+      vars:
+        environment: "prod"
+        enable_debug: false
+        log_level: "WARN"
+        agent_replicas: 5
+        enable_monitoring: true
+        enable_security_scanning: true
+        enable_backup: true
+        backup_retention_days: 30
+        high_availability: true
+        resource_limits:
+          small:
+            memory: "1Gi"
+            cpu: "1"
+          medium:
+            memory: "2Gi"
+            cpu: "2"
+          large:
+            memory: "4Gi"
+            cpu: "4"
+      
+      hosts:
+        prod-primary:
+          ansible_host: "{{ prod_primary_host | default('prod1.archangel.local') }}"
+          ansible_user: "archangel"
+          ansible_ssh_private_key_file: "~/.ssh/archangel_prod"
+          role: "primary"
+          
+        prod-secondary:
+          ansible_host: "{{ prod_secondary_host | default('prod2.archangel.local') }}"
+          ansible_user: "archangel"
+          ansible_ssh_private_key_file: "~/.ssh/archangel_prod"
+          role: "secondary"
+
+    # Management and Monitoring Infrastructure
+    management:
+      vars:
+        component_type: "management"
+        monitoring_enabled: true
+        alerting_enabled: true
+        
+      children:
+        monitoring:
+          vars:
+            service_type: "monitoring"
+          hosts:
+            prometheus-server:
+              ansible_host: "{{ prometheus_host | default('monitoring.archangel.local') }}"
+              service: "prometheus"
+              port: 9090
+            grafana-server:
+              ansible_host: "{{ grafana_host | default('grafana.archangel.local') }}"
+              service: "grafana"
+              port: 3000
+        
+        logging:
+          vars:
+            service_type: "logging"
+          hosts:
+            elasticsearch-cluster:
+              ansible_host: "{{ elasticsearch_host | default('logs.archangel.local') }}"
+              service: "elasticsearch"
+              port: 9200
+              cluster_role: "master"
+            kibana-server:
+              ansible_host: "{{ kibana_host | default('kibana.archangel.local') }}"
+              service: "kibana"
+              port: 5601
+
+    # Security Infrastructure
+    security:
+      vars:
+        component_type: "security"
+        security_hardening: true
+        intrusion_detection: true
+        
+      hosts:
+        security-scanner:
+          ansible_host: "{{ security_host | default('security.archangel.local') }}"
+          services:
+            - nmap
+            - zap
+            - nikto
+            - metasploit
+          scan_schedule: "0 2 * * *"  # Daily at 2 AM
+          
+        ids-server:
+          ansible_host: "{{ ids_host | default('ids.archangel.local') }}"
+          services:
+            - suricata
+            - snort
+            - fail2ban
+          monitoring_interfaces:
+            - "eth0"
+            - "eth1"
+
+    # Load Testing Infrastructure
+    loadtest:
+      vars:
+        component_type: "loadtest"
+        testing_enabled: true
+        
+      hosts:
+        loadtest-runner:
+          ansible_host: "{{ loadtest_host | default('loadtest.archangel.local') }}"
+          tools:
+            - artillery
+            - k6
+            - jmeter
+            - vegeta
+          test_scenarios:
+            - name: "web_app_load"
+              target: "http://nginx"
+              duration: "5m"
+              rate: "10/s"
+            - name: "api_stress"
+              target: "http://core-api:8888"
+              duration: "2m"
+              rate: "50/s"
+            - name: "database_load"
+              target: "mysql:3306"
+              connections: 100
+              duration: "3m"
+
+# Dynamic groups based on services
+dmz_services:
+  hosts:
+    nginx-lb: {}
+    wordpress: {}
+    web-app: {}
+
+internal_services:
+  hosts:
+    mysql: {}
+    postgresql: {}
+    redis: {}
+    core-api: {}
+
+management_services:
+  hosts:
+    prometheus: {}
+    grafana: {}
+    elasticsearch: {}
+    kibana: {}
+    alertmanager: {}
+
+agent_services:
+  hosts:
+    red-team-agents: {}
+    blue-team-agents: {}
+    autonomous-agents: {}
+
+security_services:
+  hosts:
+    vulnerability-scanner: {}
+    ids-system: {}
+    honeypots: {}
+    security-monitor: {}
+
+backup_services:
+  hosts:
+    backup-server: {}
+    backup-storage: {}

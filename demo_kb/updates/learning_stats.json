@@ -1,0 +1,11 @@
+{
+  "total_outcomes_processed": 10,
+  "total_updates_generated": 0,
+  "successful_updates": 0,
+  "failed_updates": 0,
+  "by_update_type": {},
+  "by_source": {},
+  "confidence_improvements": 0,
+  "new_entities_created": 0,
+  "new_relations_created": 0
+}

@@ -1,0 +1,64 @@
+[
+  {
+    "framework": "mitre_attack",
+    "entity_id": "T1595",
+    "name": "Active Scanning",
+    "description": "Adversaries may execute active reconnaissance scans",
+    "category": "reconnaissance",
+    "properties": {
+      "tactics": [
+        "reconnaissance"
+      ],
+      "platforms": [
+        "PRE"
+      ],
+      "detection_difficulty": "easy"
+    },
+    "last_updated": "2025-08-16T17:16:47.984190"
+  },
+  {
+    "framework": "mitre_attack",
+    "entity_id": "T1190",
+    "name": "Exploit Public-Facing Application",
+    "description": "Adversaries may exploit weaknesses in Internet-facing applications",
+    "category": "initial-access",
+    "properties": {
+      "tactics": [
+        "initial-access"
+      ],
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "detection_difficulty": "medium"
+    },
+    "last_updated": "2025-08-16T17:16:47.984196"
+  },
+  {
+    "framework": "mitre_attack",
+    "entity_id": "T1059",
+    "name": "Command and Scripting Interpreter",
+    "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries.",
+    "category": "execution",
+    "properties": {
+      "tactics": [
+        "execution"
+      ],
+      "platforms": [
+        "Linux",
+        "macOS",
+        "Windows"
+      ],
+      "data_sources": [
+        "Command: Command Execution",
+        "Process: Process Creation"
+      ],
+      "mitigations": [
+        "M1038: Execution Prevention",
+        "M1042: Disable or Remove Feature or Program"
+      ]
+    },
+    "last_updated": "2025-08-16T17:15:21.364690"
+  }
+]

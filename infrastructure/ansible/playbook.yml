@@ -1,0 +1,480 @@
+---
+# Archangel Infrastructure Configuration Playbook
+# Comprehensive service configuration and management with Ansible
+
+- name: Archangel Infrastructure Deployment and Configuration
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+  
+  vars:
+    project_name: "archangel"
+    environment: "{{ env | default('dev') }}"
+    base_dir: "/opt/archangel"
+    config_dir: "{{ base_dir }}/config"
+    data_dir: "{{ base_dir }}/data"
+    logs_dir: "{{ base_dir }}/logs"
+    backup_dir: "{{ base_dir }}/backups"
+    
+    # Network configuration
+    networks:
+      dmz: "192.168.10.0/24"
+      internal: "192.168.20.0/24"
+      management: "192.168.40.0/24"
+      deception: "192.168.50.0/24"
+    
+    # Service configuration
+    services:
+      enable_monitoring: true
+      enable_security_tools: true
+      enable_honeypots: true
+      enable_elk_stack: true
+      agent_replicas: 3
+    
+    # Security configuration
+    security:
+      enable_firewall: true
+      enable_selinux: false
+      enable_fail2ban: true
+      ssh_hardening: true
+      file_integrity: true
+  
+  pre_tasks:
+    - name: Ensure system is up to date
+      package:
+        name: '*'
+        state: latest
+      when: ansible_os_family == "RedHat"
+    
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+    
+    - name: Install required system packages
+      package:
+        name:
+          - docker.io
+          - docker-compose
+          - curl
+          - wget
+          - git
+          - htop
+          - netcat
+          - nmap
+          - tcpdump
+          - iptables
+          - rsyslog
+          - logrotate
+          - fail2ban
+          - aide
+        state: present
+    
+    - name: Ensure Docker service is running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+    
+    - name: Create archangel system user
+      user:
+        name: archangel
+        system: yes
+        shell: /bin/bash
+        home: "{{ base_dir }}"
+        create_home: yes
+        groups: docker
+        append: yes
+  
+  tasks:
+    - name: Create directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: archangel
+        group: archangel
+        mode: '0755'
+      loop:
+        - "{{ base_dir }}"
+        - "{{ config_dir }}"
+        - "{{ data_dir }}"
+        - "{{ logs_dir }}"
+        - "{{ backup_dir }}"
+        - "{{ config_dir }}/prometheus"
+        - "{{ config_dir }}/grafana"
+        - "{{ config_dir }}/elasticsearch"
+        - "{{ config_dir }}/logstash"
+        - "{{ config_dir }}/kibana"
+        - "{{ config_dir }}/nginx"
+        - "{{ config_dir }}/honeypots"
+        - "{{ data_dir }}/prometheus"
+        - "{{ data_dir }}/grafana"
+        - "{{ data_dir }}/elasticsearch"
+        - "{{ data_dir }}/mysql"
+        - "{{ data_dir }}/postgresql"
+    
+    - name: Generate Prometheus configuration
+      template:
+        src: templates/prometheus.yml.j2
+        dest: "{{ config_dir }}/prometheus/prometheus.yml"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      notify: restart prometheus
+    
+    - name: Generate Grafana datasource configuration
+      template:
+        src: templates/grafana-datasources.yml.j2
+        dest: "{{ config_dir }}/grafana/provisioning/datasources/datasources.yml"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      notify: restart grafana
+    
+    - name: Generate Elasticsearch configuration
+      template:
+        src: templates/elasticsearch.yml.j2
+        dest: "{{ config_dir }}/elasticsearch/elasticsearch.yml"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      notify: restart elasticsearch
+    
+    - name: Generate Logstash pipeline configuration
+      template:
+        src: templates/logstash.conf.j2
+        dest: "{{ config_dir }}/logstash/pipeline/logstash.conf"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      notify: restart logstash
+    
+    - name: Generate Nginx load balancer configuration
+      template:
+        src: templates/nginx.conf.j2
+        dest: "{{ config_dir }}/nginx/nginx.conf"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      notify: restart nginx
+    
+    - name: Deploy Docker Compose configuration
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ base_dir }}/docker-compose.yml"
+        owner: archangel
+        group: archangel
+        mode: '0644'
+      register: docker_compose_config
+    
+    - name: Deploy environment configuration file
+      template:
+        src: templates/env.j2
+        dest: "{{ base_dir }}/.env"
+        owner: archangel
+        group: archangel
+        mode: '0600'
+    
+    - name: Configure system firewall rules
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination_port: "{{ item }}"
+        jump: ACCEPT
+      loop:
+        - "22"    # SSH
+        - "80"    # HTTP
+        - "443"   # HTTPS
+        - "3000"  # Grafana
+        - "5601"  # Kibana
+        - "9090"  # Prometheus
+      when: security.enable_firewall
+    
+    - name: Configure fail2ban for SSH protection
+      copy:
+        content: |
+          [sshd]
+          enabled = true
+          port = ssh
+          filter = sshd
+          logpath = /var/log/auth.log
+          maxretry = 3
+          bantime = 3600
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: '0644'
+      when: security.enable_fail2ban
+      notify: restart fail2ban
+    
+    - name: Configure log rotation for archangel services
+      copy:
+        content: |
+          {{ logs_dir }}/*.log {
+              daily
+              rotate 30
+              compress
+              delaycompress
+              missingok
+              notifempty
+              create 644 archangel archangel
+              postrotate
+                  docker-compose -f {{ base_dir }}/docker-compose.yml restart || true
+              endscript
+          }
+        dest: /etc/logrotate.d/archangel
+        owner: root
+        group: root
+        mode: '0644'
+    
+    - name: Deploy system monitoring scripts
+      template:
+        src: templates/system-monitor.sh.j2
+        dest: "{{ base_dir }}/scripts/system-monitor.sh"
+        owner: archangel
+        group: archangel
+        mode: '0755'
+    
+    - name: Deploy backup script
+      template:
+        src: templates/backup.sh.j2
+        dest: "{{ base_dir }}/scripts/backup.sh"
+        owner: archangel
+        group: archangel
+        mode: '0755'
+    
+    - name: Configure system monitoring cron job
+      cron:
+        name: "Archangel system monitoring"
+        minute: "*/5"
+        job: "{{ base_dir }}/scripts/system-monitor.sh"
+        user: archangel
+        state: present
+    
+    - name: Configure daily backup cron job
+      cron:
+        name: "Archangel daily backup"
+        hour: "2"
+        minute: "0"
+        job: "{{ base_dir }}/scripts/backup.sh"
+        user: archangel
+        state: present
+    
+    - name: Deploy Docker images
+      docker_image:
+        name: "{{ item.name }}"
+        source: pull
+        state: present
+      loop:
+        - name: "prometheus/prometheus:latest"
+        - name: "grafana/grafana:latest"
+        - name: "docker.elastic.co/elasticsearch/elasticsearch:7.15.0"
+        - name: "docker.elastic.co/logstash/logstash:7.15.0"
+        - name: "docker.elastic.co/kibana/kibana:7.15.0"
+        - name: "nginx:alpine"
+        - name: "mysql:5.7"
+        - name: "postgres:12"
+        - name: "wordpress:5.8-apache"
+        - name: "owasp/zap2docker-stable:latest"
+        - name: "cowrie/cowrie:latest"
+      when: services.enable_monitoring or services.enable_elk_stack
+    
+    - name: Start Archangel infrastructure
+      docker_compose:
+        project_src: "{{ base_dir }}"
+        project_name: "{{ project_name }}-{{ environment }}"
+        state: present
+        pull: yes
+        recreate: smart
+      register: docker_compose_result
+    
+    - name: Wait for services to be ready
+      uri:
+        url: "{{ item.url }}"
+        method: GET
+        status_code: 200
+      loop:
+        - url: "http://localhost:9090/-/ready"
+          name: "Prometheus"
+        - url: "http://localhost:3000/api/health"
+          name: "Grafana"
+        - url: "http://localhost:9200/_cluster/health"
+          name: "Elasticsearch"
+      retries: 30
+      delay: 10
+      when: services.enable_monitoring or services.enable_elk_stack
+    
+    - name: Configure Grafana dashboards
+      uri:
+        url: "http://localhost:3000/api/dashboards/db"
+        method: POST
+        user: admin
+        password: "archangel_admin_{{ environment }}"
+        body_format: json
+        body:
+          dashboard: "{{ lookup('file', item) | from_json }}"
+          overwrite: true
+        status_code: 200
+      loop:
+        - "templates/grafana-dashboard-agents.json"
+        - "templates/grafana-dashboard-security.json"
+        - "templates/grafana-dashboard-system.json"
+      when: services.enable_monitoring
+      ignore_errors: yes
+    
+    - name: Configure Elasticsearch index templates
+      uri:
+        url: "http://localhost:9200/_template/archangel"
+        method: PUT
+        body_format: json
+        body:
+          template: "archangel-*"
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              timestamp:
+                type: date
+              level:
+                type: keyword
+              message:
+                type: text
+              agent_id:
+                type: keyword
+              action_type:
+                type: keyword
+        status_code: 200
+      when: services.enable_elk_stack
+      ignore_errors: yes
+    
+    - name: Validate deployment
+      block:
+        - name: Check Docker containers are running
+          docker_container_info:
+            name: "{{ item }}"
+          register: container_info
+          loop:
+            - "{{ project_name }}-prometheus-{{ environment }}"
+            - "{{ project_name }}-grafana-{{ environment }}"
+            - "{{ project_name }}-elasticsearch-{{ environment }}"
+          failed_when: container_info.container.State.Status != "running"
+          when: services.enable_monitoring or services.enable_elk_stack
+        
+        - name: Test network connectivity between services
+          command: >
+            docker exec {{ project_name }}-prometheus-{{ environment }}
+            nc -z {{ project_name }}-grafana-{{ environment }} 3000
+          changed_when: false
+          when: services.enable_monitoring
+        
+        - name: Check disk usage
+          shell: df -h {{ base_dir }}
+          register: disk_usage
+          changed_when: false
+        
+        - name: Display deployment summary
+          debug:
+            msg: |
+              Archangel Infrastructure Deployment Complete:
+              Environment: {{ environment }}
+              Services Running: {{ ansible_play_batch | length }}
+              Disk Usage: {{ disk_usage.stdout_lines[1] }}
+              Access Points:
+                - Prometheus: http://localhost:9090
+                - Grafana: http://localhost:3000 (admin/archangel_admin_{{ environment }})
+                - Kibana: http://localhost:5601
+                - Elasticsearch: http://localhost:9200
+  
+  handlers:
+    - name: restart prometheus
+      docker_container:
+        name: "{{ project_name }}-prometheus-{{ environment }}"
+        restart: yes
+      ignore_errors: yes
+    
+    - name: restart grafana
+      docker_container:
+        name: "{{ project_name }}-grafana-{{ environment }}"
+        restart: yes
+      ignore_errors: yes
+    
+    - name: restart elasticsearch
+      docker_container:
+        name: "{{ project_name }}-elasticsearch-{{ environment }}"
+        restart: yes
+      ignore_errors: yes
+    
+    - name: restart logstash
+      docker_container:
+        name: "{{ project_name }}-logstash-{{ environment }}"
+        restart: yes
+      ignore_errors: yes
+    
+    - name: restart nginx
+      docker_container:
+        name: "{{ project_name }}-nginx-{{ environment }}"
+        restart: yes
+      ignore_errors: yes
+    
+    - name: restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+      ignore_errors: yes
+
+- name: Security Hardening
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  tasks:
+    - name: Configure SSH security
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backup: yes
+      loop:
+        - regexp: "^#?PermitRootLogin"
+          line: "PermitRootLogin no"
+        - regexp: "^#?PasswordAuthentication"
+          line: "PasswordAuthentication no"
+        - regexp: "^#?MaxAuthTries"
+          line: "MaxAuthTries 3"
+        - regexp: "^#?ClientAliveInterval"
+          line: "ClientAliveInterval 300"
+        - regexp: "^#?ClientAliveCountMax"
+          line: "ClientAliveCountMax 2"
+      notify: restart ssh
+      when: security.ssh_hardening
+    
+    - name: Initialize AIDE file integrity monitoring
+      command: aide --init
+      args:
+        creates: /var/lib/aide/aide.db.new.gz
+      when: security.file_integrity
+    
+    - name: Configure AIDE database
+      command: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+      args:
+        creates: /var/lib/aide/aide.db.gz
+      when: security.file_integrity
+    
+    - name: Schedule AIDE integrity checks
+      cron:
+        name: "AIDE file integrity check"
+        hour: "1"
+        minute: "0"
+        job: "/usr/bin/aide --check"
+        user: root
+        state: present
+      when: security.file_integrity
+  
+  handlers:
+    - name: restart ssh
+      systemd:
+        name: ssh
+        state: restarted

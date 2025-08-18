@@ -1,0 +1,214 @@
+[
+  {
+    "outcome_id": "0371eb16-bb2e-4661-9e95-a6710b2d4b7f",
+    "scenario_id": "demo_successful_network_scan",
+    "agent_id": "demo_agent",
+    "action_taken": "Successful Network Scan",
+    "technique_used": "T1595",
+    "success": true,
+    "effectiveness_score": 0.8,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "successful network scan.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:15:42.951250"
+  },
+  {
+    "outcome_id": "2b6655e8-b969-4374-a626-989fda9db756",
+    "scenario_id": "demo_blocked_network_scan",
+    "agent_id": "demo_agent",
+    "action_taken": "Blocked Network Scan",
+    "technique_used": "T1595",
+    "success": false,
+    "effectiveness_score": 0.2,
+    "duration": 30.0,
+    "detected": true,
+    "detection_time": 5.0,
+    "countermeasures_triggered": [
+      "network_monitoring",
+      "firewall"
+    ],
+    "artifacts_created": [
+      "blocked network scan.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:15:42.951511"
+  },
+  {
+    "outcome_id": "91a579ea-1645-4c28-a8a5-fbd2a2edab2a",
+    "scenario_id": "demo_web_application_exploit",
+    "agent_id": "demo_agent",
+    "action_taken": "Web Application Exploit",
+    "technique_used": "T1190",
+    "success": true,
+    "effectiveness_score": 0.9,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "web application exploit.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:15:42.951713"
+  },
+  {
+    "outcome_id": "6c9e402d-8486-4f58-8d6b-b6b3d67bde17",
+    "scenario_id": "demo_mitigated_web_exploit",
+    "agent_id": "demo_agent",
+    "action_taken": "Mitigated Web Exploit",
+    "technique_used": "T1190",
+    "success": false,
+    "effectiveness_score": 0.1,
+    "duration": 30.0,
+    "detected": true,
+    "detection_time": 5.0,
+    "countermeasures_triggered": [
+      "application_hardening",
+      "waf"
+    ],
+    "artifacts_created": [
+      "mitigated web exploit.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:15:42.951913"
+  },
+  {
+    "outcome_id": "ca21a7fa-480a-4072-a3dc-f3a9e1282e02",
+    "scenario_id": "demo_stealthy_reconnaissance",
+    "agent_id": "demo_agent",
+    "action_taken": "Stealthy Reconnaissance",
+    "technique_used": "T1595",
+    "success": true,
+    "effectiveness_score": 0.7,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "stealthy reconnaissance.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:15:42.952185"
+  },
+  {
+    "outcome_id": "ddb79868-24dd-4291-aaac-a9c2d33c25d3",
+    "scenario_id": "demo_successful_network_scan",
+    "agent_id": "demo_agent",
+    "action_taken": "Successful Network Scan",
+    "technique_used": "T1595",
+    "success": true,
+    "effectiveness_score": 0.8,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "successful network scan.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:16:48.018436"
+  },
+  {
+    "outcome_id": "64adf505-dd1d-44a1-8d42-76aa1b26d010",
+    "scenario_id": "demo_blocked_network_scan",
+    "agent_id": "demo_agent",
+    "action_taken": "Blocked Network Scan",
+    "technique_used": "T1595",
+    "success": false,
+    "effectiveness_score": 0.2,
+    "duration": 30.0,
+    "detected": true,
+    "detection_time": 5.0,
+    "countermeasures_triggered": [
+      "network_monitoring",
+      "firewall"
+    ],
+    "artifacts_created": [
+      "blocked network scan.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:16:48.019022"
+  },
+  {
+    "outcome_id": "51b45ddc-e374-4777-9903-56182f1816c4",
+    "scenario_id": "demo_web_application_exploit",
+    "agent_id": "demo_agent",
+    "action_taken": "Web Application Exploit",
+    "technique_used": "T1190",
+    "success": true,
+    "effectiveness_score": 0.9,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "web application exploit.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:16:48.019395"
+  },
+  {
+    "outcome_id": "d3e97ad0-5ac5-4cfd-9255-e68774be5356",
+    "scenario_id": "demo_mitigated_web_exploit",
+    "agent_id": "demo_agent",
+    "action_taken": "Mitigated Web Exploit",
+    "technique_used": "T1190",
+    "success": false,
+    "effectiveness_score": 0.1,
+    "duration": 30.0,
+    "detected": true,
+    "detection_time": 5.0,
+    "countermeasures_triggered": [
+      "application_hardening",
+      "waf"
+    ],
+    "artifacts_created": [
+      "mitigated web exploit.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:16:48.019724"
+  },
+  {
+    "outcome_id": "b995ae95-822b-4857-a291-f6280b5c81f3",
+    "scenario_id": "demo_stealthy_reconnaissance",
+    "agent_id": "demo_agent",
+    "action_taken": "Stealthy Reconnaissance",
+    "technique_used": "T1595",
+    "success": true,
+    "effectiveness_score": 0.7,
+    "duration": 30.0,
+    "detected": false,
+    "detection_time": null,
+    "countermeasures_triggered": [],
+    "artifacts_created": [
+      "stealthy reconnaissance.log"
+    ],
+    "metadata": {
+      "demo": true
+    },
+    "timestamp": "2025-08-16T17:16:48.020112"
+  }
+]

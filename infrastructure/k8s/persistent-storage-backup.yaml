@@ -1,0 +1,657 @@
+# Archangel Persistent Storage and Backup Systems
+# Comprehensive data persistence, backup, and disaster recovery configuration
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    environment: production
+data:
+  backup-database.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Database backup script with compression and encryption
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR="/backup/database"
+    BACKUP_FILE="archangel_${TIMESTAMP}.sql.gz.enc"
+    
+    # Create backup directory
+    mkdir -p "$BACKUP_DIR"
+    
+    # Perform database backup with compression and encryption
+    pg_dump -h postgres-service -U admin archangel \
+      | gzip \
+      | openssl enc -aes-256-cbc -salt -k "$BACKUP_ENCRYPTION_KEY" \
+      > "$BACKUP_DIR/$BACKUP_FILE"
+    
+    # Verify backup integrity
+    if [ -f "$BACKUP_DIR/$BACKUP_FILE" ] && [ -s "$BACKUP_DIR/$BACKUP_FILE" ]; then
+        echo "Backup created successfully: $BACKUP_FILE"
+        
+        # Update backup metadata
+        echo "{
+          \"timestamp\": \"$TIMESTAMP\",
+          \"filename\": \"$BACKUP_FILE\",
+          \"size\": $(stat -c%s "$BACKUP_DIR/$BACKUP_FILE"),
+          \"checksum\": \"$(sha256sum "$BACKUP_DIR/$BACKUP_FILE" | cut -d' ' -f1)\"
+        }" > "$BACKUP_DIR/${BACKUP_FILE}.meta"
+        
+        # Cleanup old backups (keep last 30 days)
+        find "$BACKUP_DIR" -name "*.sql.gz.enc" -mtime +30 -delete
+        find "$BACKUP_DIR" -name "*.meta" -mtime +30 -delete
+        
+        # Upload to S3 if configured
+        if [ -n "${AWS_S3_BUCKET:-}" ]; then
+            aws s3 cp "$BACKUP_DIR/$BACKUP_FILE" "s3://$AWS_S3_BUCKET/database-backups/"
+            aws s3 cp "$BACKUP_DIR/${BACKUP_FILE}.meta" "s3://$AWS_S3_BUCKET/database-backups/"
+        fi
+        
+        exit 0
+    else
+        echo "Backup failed or empty file created"
+        exit 1
+    fi
+  
+  backup-vector-store.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Vector store backup script
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR="/backup/vector-store"
+    BACKUP_FILE="vector_store_${TIMESTAMP}.tar.gz.enc"
+    
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup vector store data
+    if [ -d "/opt/archangel/data/vector-store" ]; then
+        tar -czf - -C /opt/archangel/data vector-store \
+          | openssl enc -aes-256-cbc -salt -k "$BACKUP_ENCRYPTION_KEY" \
+          > "$BACKUP_DIR/$BACKUP_FILE"
+        
+        echo "Vector store backup created: $BACKUP_FILE"
+        
+        # Cleanup old backups
+        find "$BACKUP_DIR" -name "*.tar.gz.enc" -mtime +14 -delete
+        
+        # Upload to S3 if configured
+        if [ -n "${AWS_S3_BUCKET:-}" ]; then
+            aws s3 cp "$BACKUP_DIR/$BACKUP_FILE" "s3://$AWS_S3_BUCKET/vector-store-backups/"
+        fi
+    else
+        echo "Vector store directory not found"
+        exit 1
+    fi
+  
+  restore-database.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Database restore script
+    BACKUP_FILE="$1"
+    
+    if [ -z "$BACKUP_FILE" ]; then
+        echo "Usage: $0 <backup_file>"
+        exit 1
+    fi
+    
+    if [ ! -f "$BACKUP_FILE" ]; then
+        echo "Backup file not found: $BACKUP_FILE"
+        exit 1
+    fi
+    
+    echo "Restoring database from: $BACKUP_FILE"
+    
+    # Decrypt, decompress, and restore
+    openssl enc -aes-256-cbc -d -salt -k "$BACKUP_ENCRYPTION_KEY" -in "$BACKUP_FILE" \
+      | gunzip \
+      | psql -h postgres-service -U admin archangel
+    
+    echo "Database restore completed"
+  
+  backup-monitoring.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Backup monitoring and alerting script
+    BACKUP_DIR="/backup"
+    ALERT_WEBHOOK="${ALERT_WEBHOOK_URL:-}"
+    
+    # Check backup freshness
+    check_backup_freshness() {
+        local backup_type="$1"
+        local max_age_hours="$2"
+        local backup_pattern="$3"
+        
+        latest_backup=$(find "$BACKUP_DIR/$backup_type" -name "$backup_pattern" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+        
+        if [ -z "$latest_backup" ]; then
+            echo "ERROR: No $backup_type backups found"
+            return 1
+        fi
+        
+        backup_age=$(( ($(date +%s) - $(stat -c %Y "$latest_backup")) / 3600 ))
+        
+        if [ $backup_age -gt $max_age_hours ]; then
+            echo "ERROR: Latest $backup_type backup is $backup_age hours old (max: $max_age_hours)"
+            return 1
+        fi
+        
+        echo "OK: Latest $backup_type backup is $backup_age hours old"
+        return 0
+    }
+    
+    # Check database backups (should be < 24 hours old)
+    check_backup_freshness "database" 24 "*.sql.gz.enc"
+    db_status=$?
+    
+    # Check vector store backups (should be < 48 hours old)
+    check_backup_freshness "vector-store" 48 "*.tar.gz.enc"
+    vs_status=$?
+    
+    # Send alert if any backup is stale
+    if [ $db_status -ne 0 ] || [ $vs_status -ne 0 ]; then
+        if [ -n "$ALERT_WEBHOOK" ]; then
+            curl -X POST "$ALERT_WEBHOOK" \
+                -H "Content-Type: application/json" \
+                -d "{\"text\":\"Archangel backup monitoring alert: Stale backups detected\"}"
+        fi
+        exit 1
+    fi
+    
+    echo "All backups are current"
+
+---
+# Backup CronJobs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    backup-type: database
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600  # 1 hour timeout
+      template:
+        metadata:
+          labels:
+            app: archangel
+            component: backup
+            backup-type: database
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            fsGroup: 1000
+          containers:
+            - name: database-backup
+              image: postgres:14-alpine
+              command:
+                - /bin/bash
+                - /scripts/backup-database.sh
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: archangel-secrets
+                      key: postgres-password
+                - name: BACKUP_ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: encryption-key
+                - name: AWS_S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+                      optional: true
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: backup-scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backup-storage
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: backup-scripts
+              configMap:
+                name: backup-scripts
+                defaultMode: 0755
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage-pvc
+            - name: tmp
+              emptyDir:
+                sizeLimit: 1Gi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vector-store-backup
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    backup-type: vector-store
+spec:
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 7200  # 2 hour timeout
+      template:
+        metadata:
+          labels:
+            app: archangel
+            component: backup
+            backup-type: vector-store
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            fsGroup: 1000
+          containers:
+            - name: vector-store-backup
+              image: alpine:3.18
+              command:
+                - /bin/bash
+                - /scripts/backup-vector-store.sh
+              env:
+                - name: BACKUP_ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: encryption-key
+                - name: AWS_S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+                      optional: true
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "200m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: backup-scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backup-storage
+                  mountPath: /backup
+                - name: vector-data
+                  mountPath: /opt/archangel/data
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: backup-scripts
+              configMap:
+                name: backup-scripts
+                defaultMode: 0755
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage-pvc
+            - name: vector-data
+              persistentVolumeClaim:
+                claimName: archangel-core-data-pvc
+            - name: tmp
+              emptyDir:
+                sizeLimit: 2Gi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-monitoring
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    backup-type: monitoring
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  timeZone: "UTC"
+  concurrencyPolicy: Allow
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300  # 5 minute timeout
+      template:
+        metadata:
+          labels:
+            app: archangel
+            component: backup
+            backup-type: monitoring
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            fsGroup: 1000
+          containers:
+            - name: backup-monitoring
+              image: alpine:3.18
+              command:
+                - /bin/bash
+                - /scripts/backup-monitoring.sh
+              env:
+                - name: ALERT_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: alert-secrets
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+              volumeMounts:
+                - name: backup-scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backup-storage
+                  mountPath: /backup
+                  readOnly: true
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: backup-scripts
+              configMap:
+                name: backup-scripts
+                defaultMode: 0755
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage-pvc
+
+---
+# Persistent Volume Claims for Backup Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage-pvc
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    tier: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: archangel-standard-ssd
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Backup Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+data:
+  retention-policy.yaml: |
+    retention:
+      database:
+        daily: 30    # Keep daily backups for 30 days
+        weekly: 12   # Keep weekly backups for 12 weeks
+        monthly: 12  # Keep monthly backups for 12 months
+      vector-store:
+        weekly: 8    # Keep weekly backups for 8 weeks
+        monthly: 6   # Keep monthly backups for 6 months
+      logs:
+        daily: 7     # Keep log backups for 7 days
+        weekly: 4    # Keep weekly log backups for 4 weeks
+  
+  s3-bucket: "archangel-production-backups"
+  backup-schedule: |
+    # Backup schedule configuration
+    database:
+      full: "0 2 * * *"      # Daily at 2 AM
+      incremental: "0 */6 * * *"  # Every 6 hours
+    vector-store:
+      full: "0 3 * * 0"      # Weekly on Sunday at 3 AM
+    logs:
+      archive: "0 1 * * *"   # Daily at 1 AM
+
+---
+# Disaster Recovery Job Template
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disaster-recovery-template
+  namespace: archangel
+  labels:
+    app: archangel
+    component: disaster-recovery
+  annotations:
+    description: "Template for disaster recovery operations"
+spec:
+  template:
+    metadata:
+      labels:
+        app: archangel
+        component: disaster-recovery
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+        - name: disaster-recovery
+          image: postgres:14-alpine
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Disaster recovery job template"
+              echo "This job should be customized for specific recovery scenarios"
+              echo "Available recovery scripts:"
+              ls -la /scripts/
+          env:
+            - name: RECOVERY_TYPE
+              value: "full"
+            - name: BACKUP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: encryption-key
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: backup-storage
+              mountPath: /backup
+              readOnly: true
+            - name: recovery-workspace
+              mountPath: /recovery
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: backup-scripts
+          configMap:
+            name: backup-scripts
+            defaultMode: 0755
+        - name: backup-storage
+          persistentVolumeClaim:
+            claimName: backup-storage-pvc
+        - name: recovery-workspace
+          emptyDir:
+            sizeLimit: 5Gi
+
+---
+# Volume Snapshot Class for Point-in-Time Recovery
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: archangel-snapshot-class
+  labels:
+    app: archangel
+    component: backup
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+parameters:
+  encrypted: "true"
+
+---
+# Automated Volume Snapshots
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volume-snapshot
+  namespace: archangel
+  labels:
+    app: archangel
+    component: backup
+    backup-type: snapshot
+spec:
+  schedule: "0 4 * * *"  # Daily at 4 AM
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minute timeout
+      template:
+        metadata:
+          labels:
+            app: archangel
+            component: backup
+            backup-type: snapshot
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: archangel-service-account
+          containers:
+            - name: volume-snapshot
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  # Create volume snapshots for all PVCs
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  
+                  for pvc in $(kubectl get pvc -n archangel -o name); do
+                    pvc_name=$(echo $pvc | cut -d'/' -f2)
+                    snapshot_name="${pvc_name}-snapshot-${TIMESTAMP}"
+                    
+                    cat <<EOF | kubectl apply -f -
+                  apiVersion: snapshot.storage.k8s.io/v1
+                  kind: VolumeSnapshot
+                  metadata:
+                    name: ${snapshot_name}
+                    namespace: archangel
+                    labels:
+                      app: archangel
+                      component: backup
+                      pvc-name: ${pvc_name}
+                      snapshot-type: automated
+                  spec:
+                    volumeSnapshotClassName: archangel-snapshot-class
+                    source:
+                      persistentVolumeClaimName: ${pvc_name}
+                  EOF
+                    
+                    echo "Created snapshot: ${snapshot_name}"
+                  done
+                  
+                  # Cleanup old snapshots (keep last 7 days)
+                  kubectl get volumesnapshots -n archangel \
+                    -l snapshot-type=automated \
+                    --sort-by=.metadata.creationTimestamp \
+                    -o name | head -n -7 | xargs -r kubectl delete
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "200m"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000
+                capabilities:
+                  drop:
+                    - ALL

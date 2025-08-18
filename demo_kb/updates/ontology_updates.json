@@ -1,0 +1,134 @@
+[
+  {
+    "update_id": "5185b441-36c7-4166-87a1-2d3cb0664b62",
+    "update_type": "entity_modification",
+    "update_source": "threat_intelligence",
+    "target_entity_id": "T1595",
+    "target_relation_id": null,
+    "changes": {
+      "threat_intel_update": true,
+      "iocs": [
+        "192.168.1.100",
+        "scanner.exe"
+      ],
+      "ttps": [
+        "port_scanning",
+        "service_enumeration"
+      ],
+      "severity": "medium"
+    },
+    "confidence_change": 0.09000000000000001,
+    "evidence": [
+      "Threat intelligence from demo_threat_feed",
+      "Confidence: 0.9",
+      "IOCs: 2",
+      "TTPs: 2"
+    ],
+    "metadata": {
+      "intel_id": "b4df3e92-90ba-4916-94b3-fc64dd4bdcd7",
+      "source": "demo_threat_feed",
+      "intel_type": "technique_update"
+    },
+    "created_at": "2025-08-16T17:15:42.952500",
+    "applied": false
+  },
+  {
+    "update_id": "055fbfaf-3004-4028-8e7d-2ba933cc429f",
+    "update_type": "entity_modification",
+    "update_source": "threat_intelligence",
+    "target_entity_id": "T1190",
+    "target_relation_id": null,
+    "changes": {
+      "threat_intel_update": true,
+      "iocs": [
+        "exploit.php",
+        "malicious.js"
+      ],
+      "ttps": [
+        "sql_injection",
+        "xss"
+      ],
+      "severity": "high"
+    },
+    "confidence_change": 0.095,
+    "evidence": [
+      "Threat intelligence from demo_security_vendor",
+      "Confidence: 0.95",
+      "IOCs: 2",
+      "TTPs: 2"
+    ],
+    "metadata": {
+      "intel_id": "5e5122eb-6d31-4456-b899-21eb1468178a",
+      "source": "demo_security_vendor",
+      "intel_type": "vulnerability_report"
+    },
+    "created_at": "2025-08-16T17:15:42.952842",
+    "applied": false
+  },
+  {
+    "update_id": "cef61102-308c-4518-a8dc-fe1ea288f6b3",
+    "update_type": "entity_modification",
+    "update_source": "threat_intelligence",
+    "target_entity_id": "T1595",
+    "target_relation_id": null,
+    "changes": {
+      "threat_intel_update": true,
+      "iocs": [
+        "192.168.1.100",
+        "scanner.exe"
+      ],
+      "ttps": [
+        "port_scanning",
+        "service_enumeration"
+      ],
+      "severity": "medium"
+    },
+    "confidence_change": 0.09000000000000001,
+    "evidence": [
+      "Threat intelligence from demo_threat_feed",
+      "Confidence: 0.9",
+      "IOCs: 2",
+      "TTPs: 2"
+    ],
+    "metadata": {
+      "intel_id": "451ff2ef-78ea-47eb-b360-c78c5f6abe9a",
+      "source": "demo_threat_feed",
+      "intel_type": "technique_update"
+    },
+    "created_at": "2025-08-16T17:16:48.020837",
+    "applied": false
+  },
+  {
+    "update_id": "0ffb8f3f-211c-427b-b4c5-f4150a70276c",
+    "update_type": "entity_modification",
+    "update_source": "threat_intelligence",
+    "target_entity_id": "T1190",
+    "target_relation_id": null,
+    "changes": {
+      "threat_intel_update": true,
+      "iocs": [
+        "exploit.php",
+        "malicious.js"
+      ],
+      "ttps": [
+        "sql_injection",
+        "xss"
+      ],
+      "severity": "high"
+    },
+    "confidence_change": 0.095,
+    "evidence": [
+      "Threat intelligence from demo_security_vendor",
+      "Confidence: 0.95",
+      "IOCs: 2",
+      "TTPs: 2"
+    ],
+    "metadata": {
+      "intel_id": "229dac7c-865c-4935-9275-ede1a7409030",
+      "source": "demo_security_vendor",
+      "intel_type": "vulnerability_report"
+    },
+    "created_at": "2025-08-16T17:16:48.021654",
+    "applied": false
+  }
+]

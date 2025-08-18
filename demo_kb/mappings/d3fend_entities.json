@@ -1,0 +1,70 @@
+[
+  {
+    "framework": "d3fend",
+    "entity_id": "D3-NTA",
+    "name": "Network Traffic Analysis",
+    "description": "Analyzing network traffic to detect malicious activity",
+    "category": "detect",
+    "properties": {
+      "detection_type": "behavioral",
+      "related_offensive_techniques": [
+        "T1595",
+        "T1046"
+      ]
+    },
+    "last_updated": "2025-08-16T17:16:47.984200"
+  },
+  {
+    "framework": "d3fend",
+    "entity_id": "D3-SYMON",
+    "name": "System Monitoring",
+    "description": "Monitoring system activities and processes for signs of compromise.",
+    "category": "detect",
+    "properties": {
+      "definition": "The monitoring of system activities to detect malicious behavior.",
+      "synonyms": [
+        "Host Monitoring",
+        "Endpoint Monitoring"
+      ],
+      "related_offensive_techniques": [
+        "T1059",
+        "T1055"
+      ]
+    },
+    "last_updated": "2025-08-16T17:15:21.364923"
+  },
+  {
+    "framework": "d3fend",
+    "entity_id": "D3-AL",
+    "name": "Application Logging",
+    "description": "Logging application events and activities for security analysis.",
+    "category": "detect",
+    "properties": {
+      "definition": "The logging of application events for security monitoring and analysis.",
+      "synonyms": [
+        "App Logging",
+        "Software Logging"
+      ],
+      "related_offensive_techniques": [
+        "T1190",
+        "T1068"
+      ]
+    },
+    "last_updated": "2025-08-16T17:15:21.365015"
+  },
+  {
+    "framework": "d3fend",
+    "entity_id": "D3-AH",
+    "name": "Application Hardening",
+    "description": "Hardening applications against exploitation",
+    "category": "harden",
+    "properties": {
+      "prevention_type": "proactive",
+      "related_offensive_techniques": [
+        "T1190",
+        "T1068"
+      ]
+    },
+    "last_updated": "2025-08-16T17:16:47.984203"
+  }
+]

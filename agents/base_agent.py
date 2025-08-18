@@ -86,6 +86,17 @@ class ReasoningResult:
     alternatives_considered: List[str]
 
 @dataclass
+class Action:
+    """Individual action that can be taken by an agent"""
+    action_id: str
+    action_type: str
+    parameters: Dict[str, Any]
+    timestamp: datetime
+    target: Optional[str] = None
+    priority: int = 1
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
 class ActionPlan:
     """Planned actions for agent execution"""
     primary_action: str
@@ -118,14 +129,14 @@ class Experience:
     experience_id: str
     agent_id: str
     timestamp: datetime
-    context: EnvironmentState
-    action_taken: ActionPlan
-    reasoning: ReasoningResult
-    outcome: ActionResult
-    success: bool
-    lessons_learned: List[str]
-    mitre_attack_mapping: List[str]
-    confidence_score: float
+    action_taken: Optional[Action] = None
+    success: bool = False
+    reasoning: str = ""
+    outcome: str = ""
+    context: Optional[EnvironmentState] = None
+    lessons_learned: List[str] = field(default_factory=list)
+    mitre_attack_mapping: List[str] = field(default_factory=list)
+    confidence_score: float = 0.0
 
 class BaseAgent(ABC):
     """

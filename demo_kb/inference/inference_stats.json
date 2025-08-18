@@ -1,0 +1,10 @@
+{
+  "total_inferences": 0,
+  "successful_inferences": 0,
+  "failed_inferences": 0,
+  "by_type": {
+    "similarity": 0,
+    "transitive": 0
+  },
+  "by_confidence": {}
+}

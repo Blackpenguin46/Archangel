@@ -1,0 +1,207 @@
+groups:
+  - name: archangel_agents
+    rules:
+      # Agent Health Monitoring
+      - alert: AgentDown
+        expr: up{job="archangel-agents"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: agent
+        annotations:
+          summary: "Archangel Agent is down"
+          description: "Agent {{ $labels.instance }} has been down for more than 30 seconds"
+
+      - alert: AgentHighMemoryUsage
+        expr: (container_memory_usage_bytes{name=~".*agent.*"} / container_spec_memory_limit_bytes{name=~".*agent.*"}) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          component: agent
+        annotations:
+          summary: "Agent high memory usage"
+          description: "Agent {{ $labels.name }} memory usage is above 80% for more than 2 minutes"
+
+      - alert: AgentHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name=~".*agent.*"}[5m]) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          component: agent
+        annotations:
+          summary: "Agent high CPU usage"
+          description: "Agent {{ $labels.name }} CPU usage is above 80% for more than 2 minutes"
+
+      - alert: AgentResponseTimeDegradation
+        expr: archangel_agent_response_time_seconds > 5
+        for: 1m
+        labels:
+          severity: warning
+          component: agent
+        annotations:
+          summary: "Agent response time degraded"
+          description: "Agent {{ $labels.agent_id }} response time is above 5 seconds"
+
+      - alert: AgentDecisionFailureRate
+        expr: rate(archangel_agent_decisions_failed_total[5m]) / rate(archangel_agent_decisions_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: agent
+        annotations:
+          summary: "High agent decision failure rate"
+          description: "Agent {{ $labels.agent_id }} decision failure rate is above 10%"
+
+  - name: infrastructure_health
+    rules:
+      # System Resource Monitoring
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "System memory usage is above 85% for more than 2 minutes"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "System CPU usage is above 80% for more than 2 minutes"
+
+      - alert: DiskSpaceUsage
+        expr: (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_free_bytes{mountpoint="/"}) / node_filesystem_size_bytes{mountpoint="/"} * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk space usage"
+          description: "Disk space usage is above 85% for more than 2 minutes"
+
+      # Database Health
+      - alert: MySQLDown
+        expr: up{job="mysql"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "MySQL database is down"
+          description: "MySQL database has been down for more than 30 seconds"
+
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been down for more than 30 seconds"
+
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: search
+        annotations:
+          summary: "Elasticsearch is down"
+          description: "Elasticsearch has been down for more than 30 seconds"
+
+  - name: security_monitoring
+    rules:
+      # Honeypot Activity
+      - alert: HoneypotHighActivity
+        expr: rate(honeypot_interactions_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: info
+          component: honeypot
+        annotations:
+          summary: "High honeypot activity detected"
+          description: "Honeypot {{ $labels.honeypot_type }} is receiving more than 10 interactions per minute"
+
+      - alert: HoneypotDown
+        expr: up{job="honeypot-monitor"} == 0
+        for: 30s
+        labels:
+          severity: warning
+          component: honeypot
+        annotations:
+          summary: "Honeypot monitor is down"
+          description: "Honeypot monitoring service has been down for more than 30 seconds"
+
+      # Security Alerts
+      - alert: SuricataAlertsHigh
+        expr: rate(suricata_alerts_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: ids
+        annotations:
+          summary: "High Suricata alert rate"
+          description: "Suricata IDS is generating more than 5 alerts per minute"
+
+      # Agent Coordination Issues
+      - alert: AgentCommunicationFailure
+        expr: rate(archangel_agent_communication_failures_total[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          component: communication
+        annotations:
+          summary: "Agent communication failures detected"
+          description: "Agent communication failure rate is above 5% for more than 1 minute"
+
+      - alert: TeamCoordinationDegraded
+        expr: archangel_team_coordination_score < 0.7
+        for: 2m
+        labels:
+          severity: warning
+          component: coordination
+        annotations:
+          summary: "Team coordination degraded"
+          description: "Team {{ $labels.team }} coordination score is below 70%"
+
+  - name: performance_monitoring
+    rules:
+      # Game Loop Performance
+      - alert: GameLoopSlowdown
+        expr: archangel_game_loop_duration_seconds > 60
+        for: 1m
+        labels:
+          severity: warning
+          component: game_loop
+        annotations:
+          summary: "Game loop performance degraded"
+          description: "Game loop execution time is above 60 seconds"
+
+      # Scoring Engine Performance
+      - alert: ScoringEngineDelay
+        expr: archangel_scoring_calculation_duration_seconds > 10
+        for: 30s
+        labels:
+          severity: warning
+          component: scoring
+        annotations:
+          summary: "Scoring engine performance degraded"
+          description: "Scoring calculation is taking more than 10 seconds"
+
+      # Memory System Performance
+      - alert: VectorStoreQuerySlow
+        expr: archangel_vector_store_query_duration_seconds > 2
+        for: 1m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "Vector store query performance degraded"
+          description: "Vector store queries are taking more than 2 seconds"

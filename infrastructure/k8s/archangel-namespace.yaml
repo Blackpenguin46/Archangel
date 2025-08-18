@@ -1,0 +1,472 @@
+# Archangel Kubernetes Namespace and RBAC Configuration
+# Comprehensive namespace setup with security policies and resource quotas
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: archangel
+  labels:
+    name: archangel
+    project: archangel
+    environment: production
+    managed-by: kubernetes
+    security.istio.io/tlsMode: istio
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    description: "Archangel AI Security Expert System"
+    contact: "admin@archangel.local"
+    version: "1.0.0"
+
+---
+# Resource Quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: archangel-quota
+  namespace: archangel
+  labels:
+    app: archangel
+    component: resource-management
+spec:
+  hard:
+    # Compute Resources
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    
+    # Storage Resources
+    requests.storage: 100Gi
+    persistentvolumeclaims: "10"
+    
+    # Object counts
+    pods: "50"
+    services: "20"
+    secrets: "20"
+    configmaps: "30"
+    ingresses.networking.k8s.io: "10"
+    
+    # Network policies
+    networkpolicies.networking.k8s.io: "10"
+
+---
+# Limit Ranges for resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: archangel-limits
+  namespace: archangel
+spec:
+  limits:
+    # Default limits for containers
+    - type: Container
+      default:
+        cpu: "1"
+        memory: "1Gi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "10m"
+        memory: "64Mi"
+    
+    # Limits for pods
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: "16Gi"
+      min:
+        cpu: "10m"
+        memory: "64Mi"
+    
+    # Limits for PVCs
+    - type: PersistentVolumeClaim
+      max:
+        storage: "10Gi"
+      min:
+        storage: "1Gi"
+
+---
+# Service Account for Archangel services
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: archangel-service-account
+  namespace: archangel
+  labels:
+    app: archangel
+    component: service-account
+automountServiceAccountToken: true
+
+---
+# RBAC ClusterRole for Archangel
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: archangel-cluster-role
+  labels:
+    app: archangel
+    component: rbac
+rules:
+  # Pod and container management
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec", "pods/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Service and endpoint management
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # ConfigMap and Secret management
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Event access
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create"]
+  
+  # Node information (for monitoring)
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/metrics"]
+    verbs: ["get", "list", "watch"]
+  
+  # Deployment and ReplicaSet management
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Ingress management
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Custom Resource Definitions
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  
+  # Metrics access
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+
+---
+# RBAC Role for namespace-specific operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: archangel-role
+  namespace: archangel
+  labels:
+    app: archangel
+    component: rbac
+rules:
+  # Full access within namespace
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  
+  # Specific monitoring permissions
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors", "prometheusrules"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: archangel-cluster-binding
+  labels:
+    app: archangel
+    component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: archangel-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: archangel-service-account
+    namespace: archangel
+
+---
+# RoleBinding for namespace role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: archangel-binding
+  namespace: archangel
+  labels:
+    app: archangel
+    component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: archangel-role
+subjects:
+  - kind: ServiceAccount
+    name: archangel-service-account
+    namespace: archangel
+
+---
+# Network Policy for security isolation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: archangel-network-policy
+  namespace: archangel
+  labels:
+    app: archangel
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: archangel
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow ingress from same namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: archangel
+    
+    # Allow ingress from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+    
+    # Allow ingress from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+  
+  egress:
+    # Allow egress to same namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: archangel
+    
+    # Allow egress to kube-system for DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow egress to external services (controlled)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS
+        - protocol: TCP
+          port: 80   # HTTP
+
+---
+# Pod Security Policy (deprecated but showing intent)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: archangel-pod-security-context
+  namespace: archangel
+  labels:
+    app: archangel
+    component: security
+type: Opaque
+stringData:
+  securityContext.yaml: |
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      capabilities:
+        drop:
+          - ALL
+        add:
+          - NET_BIND_SERVICE
+      seccompProfile:
+        type: RuntimeDefault
+
+---
+# Priority Class for critical components
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: archangel-critical
+  labels:
+    app: archangel
+    component: scheduling
+value: 1000
+globalDefault: false
+description: "Priority class for critical Archangel components"
+
+---
+# Horizontal Pod Autoscaler configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: archangel-agents-hpa
+  namespace: archangel
+  labels:
+    app: archangel
+    component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: archangel-agents
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: archangel-core-pdb
+  namespace: archangel
+  labels:
+    app: archangel
+    component: availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: archangel
+      component: core
+
+---
+# Configuration for resource monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archangel-monitoring-config
+  namespace: archangel
+  labels:
+    app: archangel
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    rule_files:
+      - "alert_rules.yml"
+    
+    scrape_configs:
+      - job_name: 'archangel-core'
+        static_configs:
+          - targets: ['archangel-core:8888']
+        scrape_interval: 5s
+        metrics_path: /metrics
+      
+      - job_name: 'archangel-agents'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['archangel']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: archangel-agent
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+  
+  alert_rules.yml: |
+    groups:
+      - name: archangel.rules
+        rules:
+          - alert: ArchangelCoreDown
+            expr: up{job="archangel-core"} == 0
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Archangel core service is down"
+              description: "Archangel core has been down for more than 30 seconds"
+          
+          - alert: ArchangelAgentHighCPU
+            expr: rate(container_cpu_usage_seconds_total{pod=~"archangel-agent-.*"}[5m]) > 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Archangel agent high CPU usage"
+              description: "Agent {{ $labels.pod }} CPU usage is above 80%"
+          
+          - alert: ArchangelMemoryUsage
+            expr: container_memory_usage_bytes{pod=~"archangel-.*"} / container_spec_memory_limit_bytes > 0.9
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Archangel high memory usage"
+              description: "Pod {{ $labels.pod }} memory usage is above 90%"

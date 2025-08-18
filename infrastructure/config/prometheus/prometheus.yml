@@ -1,0 +1,66 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus monitoring itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Application metrics
+  - job_name: 'archangel-agents'
+    static_configs:
+      - targets: ['host.docker.internal:8888']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  # Infrastructure services
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-vulnerable:3306']
+    scrape_interval: 30s
+
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgresql-vulnerable:5432']
+    scrape_interval: 30s
+
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+    metrics_path: '/_prometheus/metrics'
+    scrape_interval: 30s
+
+  # Honeypot metrics
+  - job_name: 'honeypot-monitor'
+    static_configs:
+      - targets: ['honeypot-monitor:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Security monitoring
+  - job_name: 'suricata-metrics'
+    static_configs:
+      - targets: ['suricata-ids:9092']
+    metrics_path: '/metrics'
+    scrape_interval: 10s

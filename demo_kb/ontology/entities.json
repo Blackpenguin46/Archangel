@@ -1,0 +1,611 @@
+[
+  {
+    "entity_id": "d6357b88-a022-459f-b8c2-99ff6d1ca043",
+    "entity_type": "tactic",
+    "name": "Reconnaissance",
+    "description": "The adversary is trying to gather information they can use to plan future operations.",
+    "properties": {
+      "tactic_id": "reconnaissance",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "reconnaissance",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.357904",
+    "last_updated": "2025-08-16T17:15:21.357905"
+  },
+  {
+    "entity_id": "25c0e0db-a4b5-4a6f-a613-33f9b7bf113e",
+    "entity_type": "tactic",
+    "name": "Initial Access",
+    "description": "The adversary is trying to get into your network.",
+    "properties": {
+      "tactic_id": "initial-access",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "initial-access",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.358097",
+    "last_updated": "2025-08-16T17:15:21.358098"
+  },
+  {
+    "entity_id": "62b5e761-5701-430b-aed6-c5ca909197f2",
+    "entity_type": "tactic",
+    "name": "Execution",
+    "description": "The adversary is trying to run malicious code.",
+    "properties": {
+      "tactic_id": "execution",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "execution",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.358301",
+    "last_updated": "2025-08-16T17:15:21.358302"
+  },
+  {
+    "entity_id": "74d6b2f6-6147-46d6-9ef9-b76d22dfefde",
+    "entity_type": "tactic",
+    "name": "Persistence",
+    "description": "The adversary is trying to maintain their foothold.",
+    "properties": {
+      "tactic_id": "persistence",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "persistence",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.358809",
+    "last_updated": "2025-08-16T17:15:21.358814"
+  },
+  {
+    "entity_id": "5f583b7c-9583-4b14-8520-dda148cc8d1c",
+    "entity_type": "tactic",
+    "name": "Privilege Escalation",
+    "description": "The adversary is trying to gain higher-level permissions.",
+    "properties": {
+      "tactic_id": "privilege-escalation",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "privilege-escalation",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.359095",
+    "last_updated": "2025-08-16T17:15:21.359097"
+  },
+  {
+    "entity_id": "ac90dc80-4802-41d3-b5dc-58c180b811f9",
+    "entity_type": "tactic",
+    "name": "Defense Evasion",
+    "description": "The adversary is trying to avoid being detected.",
+    "properties": {
+      "tactic_id": "defense-evasion",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "defense-evasion",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.359339",
+    "last_updated": "2025-08-16T17:15:21.359341"
+  },
+  {
+    "entity_id": "9adc08bb-4118-4362-b035-e5d7dac6c73e",
+    "entity_type": "tactic",
+    "name": "Credential Access",
+    "description": "The adversary is trying to steal account names and passwords.",
+    "properties": {
+      "tactic_id": "credential-access",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "credential-access",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.359584",
+    "last_updated": "2025-08-16T17:15:21.359585"
+  },
+  {
+    "entity_id": "8d5d92b9-41f5-4ecf-ae7e-4745d3ce8d5c",
+    "entity_type": "tactic",
+    "name": "Discovery",
+    "description": "The adversary is trying to figure out your environment.",
+    "properties": {
+      "tactic_id": "discovery",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "discovery",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.359782",
+    "last_updated": "2025-08-16T17:15:21.359782"
+  },
+  {
+    "entity_id": "f8f02c8e-f1a3-4aeb-83c5-eb207144424b",
+    "entity_type": "tactic",
+    "name": "Lateral Movement",
+    "description": "The adversary is trying to move through your environment.",
+    "properties": {
+      "tactic_id": "lateral-movement",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "lateral-movement",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.359995",
+    "last_updated": "2025-08-16T17:15:21.359995"
+  },
+  {
+    "entity_id": "7ede83ad-992f-4b10-807c-4ec83c35389a",
+    "entity_type": "tactic",
+    "name": "Collection",
+    "description": "The adversary is trying to gather data of interest to their goal.",
+    "properties": {
+      "tactic_id": "collection",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "collection",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.360205",
+    "last_updated": "2025-08-16T17:15:21.360205"
+  },
+  {
+    "entity_id": "861ac7ef-f284-45c8-bf3a-ebadc96d0e14",
+    "entity_type": "tactic",
+    "name": "Command and Control",
+    "description": "The adversary is trying to communicate with compromised systems.",
+    "properties": {
+      "tactic_id": "command-and-control",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "command-and-control",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.360422",
+    "last_updated": "2025-08-16T17:15:21.360434"
+  },
+  {
+    "entity_id": "1ed7352c-46e5-4d16-b015-ee0a716f5aef",
+    "entity_type": "tactic",
+    "name": "Exfiltration",
+    "description": "The adversary is trying to steal data.",
+    "properties": {
+      "tactic_id": "exfiltration",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "exfiltration",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.360670",
+    "last_updated": "2025-08-16T17:15:21.360671"
+  },
+  {
+    "entity_id": "95841e10-f1d7-42a7-9eae-ba779d960eea",
+    "entity_type": "tactic",
+    "name": "Impact",
+    "description": "The adversary is trying to manipulate, interrupt, or destroy your systems and data.",
+    "properties": {
+      "tactic_id": "impact",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "impact",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.360923",
+    "last_updated": "2025-08-16T17:15:21.360923"
+  },
+  {
+    "entity_id": "1fe70679-c044-4a53-b2d0-07c1a7e7e4fa",
+    "entity_type": "attack_technique",
+    "name": "Active Scanning",
+    "description": "Adversaries may execute active reconnaissance scans to gather information.",
+    "properties": {
+      "technique_id": "T1595",
+      "tactic": "reconnaissance",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "T1595",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.361187",
+    "last_updated": "2025-08-16T17:15:21.361187"
+  },
+  {
+    "entity_id": "58abc5a0-1c13-4cf8-b38c-e4cd3c8021f0",
+    "entity_type": "attack_technique",
+    "name": "Exploit Public-Facing Application",
+    "description": "Adversaries may attempt to exploit weaknesses in Internet-facing applications.",
+    "properties": {
+      "technique_id": "T1190",
+      "tactic": "initial-access",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "T1190",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.361469",
+    "last_updated": "2025-08-16T17:15:21.361470"
+  },
+  {
+    "entity_id": "a69443d9-f132-483c-871e-4360dd1a91b7",
+    "entity_type": "attack_technique",
+    "name": "Command and Scripting Interpreter",
+    "description": "Adversaries may abuse command and script interpreters to execute commands.",
+    "properties": {
+      "technique_id": "T1059",
+      "tactic": "execution",
+      "framework": "mitre_attack"
+    },
+    "mitre_id": "T1059",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.361797",
+    "last_updated": "2025-08-16T17:15:21.361797"
+  },
+  {
+    "entity_id": "458e27e0-7382-4511-8f59-27e95c9fd3e9",
+    "entity_type": "defense_technique",
+    "name": "Network Traffic Analysis",
+    "description": "Analyzing network traffic to detect malicious activity.",
+    "properties": {
+      "technique_id": "D3-NTA",
+      "framework": "d3fend"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-NTA",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.362143",
+    "last_updated": "2025-08-16T17:15:21.362144"
+  },
+  {
+    "entity_id": "53078078-013b-457a-a1a0-d3a63ab143c0",
+    "entity_type": "defense_technique",
+    "name": "System Monitoring",
+    "description": "Monitoring system activities for signs of compromise.",
+    "properties": {
+      "technique_id": "D3-SYMON",
+      "framework": "d3fend"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-SYMON",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.362492",
+    "last_updated": "2025-08-16T17:15:21.362505"
+  },
+  {
+    "entity_id": "aa737558-7f1f-4595-89df-0e43088d1a9d",
+    "entity_type": "defense_technique",
+    "name": "Application Logging",
+    "description": "Logging application events for security analysis.",
+    "properties": {
+      "technique_id": "D3-AL",
+      "framework": "d3fend"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-AL",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:21.362861",
+    "last_updated": "2025-08-16T17:15:21.362861"
+  },
+  {
+    "entity_id": "47a3c92f-f7b8-49d9-8dc7-1b21d2cb7b27",
+    "entity_type": "tactic",
+    "name": "Reconnaissance",
+    "description": "The adversary is trying to gather information they can use to plan future operations.",
+    "properties": {
+      "phase": "pre-attack",
+      "mitre_id": "TA0043"
+    },
+    "mitre_id": "TA0043",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739445",
+    "last_updated": "2025-08-16T17:15:32.739446"
+  },
+  {
+    "entity_id": "6b05d52b-e251-4a03-be7d-12c95f1d0b30",
+    "entity_type": "tactic",
+    "name": "Initial Access",
+    "description": "The adversary is trying to get into your network.",
+    "properties": {
+      "phase": "attack",
+      "mitre_id": "TA0001"
+    },
+    "mitre_id": "TA0001",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739452",
+    "last_updated": "2025-08-16T17:15:32.739453"
+  },
+  {
+    "entity_id": "2e5ec2eb-0662-41d4-859a-34ca8b7fee31",
+    "entity_type": "attack_technique",
+    "name": "Active Scanning",
+    "description": "Adversaries may execute active reconnaissance scans to gather information.",
+    "properties": {
+      "stealth_level": "low",
+      "detection_difficulty": "easy",
+      "platforms": [
+        "PRE"
+      ],
+      "data_sources": [
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1595",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739458",
+    "last_updated": "2025-08-16T17:15:32.739458"
+  },
+  {
+    "entity_id": "258c913c-c8a5-4335-ace5-e2af0de71937",
+    "entity_type": "attack_technique",
+    "name": "Exploit Public-Facing Application",
+    "description": "Adversaries may attempt to exploit weaknesses in Internet-facing applications.",
+    "properties": {
+      "stealth_level": "medium",
+      "detection_difficulty": "medium",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "data_sources": [
+        "Application Log",
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1190",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739463",
+    "last_updated": "2025-08-16T17:15:32.739463"
+  },
+  {
+    "entity_id": "3e41ecd1-d17c-4897-ae3b-dd9a24448fab",
+    "entity_type": "defense_technique",
+    "name": "Network Traffic Analysis",
+    "description": "Analyzing network traffic to detect malicious activity.",
+    "properties": {
+      "detection_type": "behavioral",
+      "effectiveness": 0.85,
+      "false_positive_rate": 0.05
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-NTA",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739576",
+    "last_updated": "2025-08-16T17:15:32.739578"
+  },
+  {
+    "entity_id": "5cbc1a4f-871b-4abc-bf45-bfa650e6fea0",
+    "entity_type": "defense_technique",
+    "name": "Application Hardening",
+    "description": "Hardening applications against exploitation attempts.",
+    "properties": {
+      "prevention_type": "proactive",
+      "effectiveness": 0.9,
+      "implementation_complexity": "medium"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-AH",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:32.739590",
+    "last_updated": "2025-08-16T17:15:32.739591"
+  },
+  {
+    "entity_id": "4c9e8341-2cad-4cc6-9ace-7189459f3ac4",
+    "entity_type": "tactic",
+    "name": "Reconnaissance",
+    "description": "The adversary is trying to gather information they can use to plan future operations.",
+    "properties": {
+      "phase": "pre-attack",
+      "mitre_id": "TA0043"
+    },
+    "mitre_id": "TA0043",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936373",
+    "last_updated": "2025-08-16T17:15:42.936374"
+  },
+  {
+    "entity_id": "8320b57b-10e9-4be9-8294-f6e64773c35c",
+    "entity_type": "tactic",
+    "name": "Initial Access",
+    "description": "The adversary is trying to get into your network.",
+    "properties": {
+      "phase": "attack",
+      "mitre_id": "TA0001"
+    },
+    "mitre_id": "TA0001",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936380",
+    "last_updated": "2025-08-16T17:15:42.936381"
+  },
+  {
+    "entity_id": "c4787956-cc46-480e-aba1-e8fb6c27f949",
+    "entity_type": "attack_technique",
+    "name": "Active Scanning",
+    "description": "Adversaries may execute active reconnaissance scans to gather information.",
+    "properties": {
+      "stealth_level": "low",
+      "detection_difficulty": "easy",
+      "platforms": [
+        "PRE"
+      ],
+      "data_sources": [
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1595",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936406",
+    "last_updated": "2025-08-16T17:15:42.936407"
+  },
+  {
+    "entity_id": "4d31a64f-36fd-4426-a99f-64e293ea4cee",
+    "entity_type": "attack_technique",
+    "name": "Exploit Public-Facing Application",
+    "description": "Adversaries may attempt to exploit weaknesses in Internet-facing applications.",
+    "properties": {
+      "stealth_level": "medium",
+      "detection_difficulty": "medium",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "data_sources": [
+        "Application Log",
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1190",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936418",
+    "last_updated": "2025-08-16T17:15:42.936418"
+  },
+  {
+    "entity_id": "665d5eec-1ab7-4585-80c8-8f6290b06189",
+    "entity_type": "defense_technique",
+    "name": "Network Traffic Analysis",
+    "description": "Analyzing network traffic to detect malicious activity.",
+    "properties": {
+      "detection_type": "behavioral",
+      "effectiveness": 0.85,
+      "false_positive_rate": 0.05
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-NTA",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936442",
+    "last_updated": "2025-08-16T17:15:42.936442"
+  },
+  {
+    "entity_id": "d8c60c0f-c6c1-4ede-9f9e-ba172f70e89e",
+    "entity_type": "defense_technique",
+    "name": "Application Hardening",
+    "description": "Hardening applications against exploitation attempts.",
+    "properties": {
+      "prevention_type": "proactive",
+      "effectiveness": 0.9,
+      "implementation_complexity": "medium"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-AH",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:15:42.936447",
+    "last_updated": "2025-08-16T17:15:42.936447"
+  },
+  {
+    "entity_id": "9588b1da-66cf-4fb4-b04e-370e83ddd119",
+    "entity_type": "tactic",
+    "name": "Reconnaissance",
+    "description": "The adversary is trying to gather information they can use to plan future operations.",
+    "properties": {
+      "phase": "pre-attack",
+      "mitre_id": "TA0043"
+    },
+    "mitre_id": "TA0043",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972427",
+    "last_updated": "2025-08-16T17:16:47.972428"
+  },
+  {
+    "entity_id": "0ef92b79-9b1f-464e-95d7-30fecb6ec948",
+    "entity_type": "tactic",
+    "name": "Initial Access",
+    "description": "The adversary is trying to get into your network.",
+    "properties": {
+      "phase": "attack",
+      "mitre_id": "TA0001"
+    },
+    "mitre_id": "TA0001",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972435",
+    "last_updated": "2025-08-16T17:16:47.972436"
+  },
+  {
+    "entity_id": "70590bc3-d5b6-4708-9294-567608dab0d1",
+    "entity_type": "attack_technique",
+    "name": "Active Scanning",
+    "description": "Adversaries may execute active reconnaissance scans to gather information.",
+    "properties": {
+      "stealth_level": "low",
+      "detection_difficulty": "easy",
+      "platforms": [
+        "PRE"
+      ],
+      "data_sources": [
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1595",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972441",
+    "last_updated": "2025-08-16T17:16:47.972442"
+  },
+  {
+    "entity_id": "6cc648fd-0947-49d9-b9f4-e232e8feaa69",
+    "entity_type": "attack_technique",
+    "name": "Exploit Public-Facing Application",
+    "description": "Adversaries may attempt to exploit weaknesses in Internet-facing applications.",
+    "properties": {
+      "stealth_level": "medium",
+      "detection_difficulty": "medium",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "data_sources": [
+        "Application Log",
+        "Network Traffic"
+      ]
+    },
+    "mitre_id": "T1190",
+    "d3fend_id": null,
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972446",
+    "last_updated": "2025-08-16T17:16:47.972446"
+  },
+  {
+    "entity_id": "68e45b0b-a7de-4a54-87e3-fb65c0fafbbf",
+    "entity_type": "defense_technique",
+    "name": "Network Traffic Analysis",
+    "description": "Analyzing network traffic to detect malicious activity.",
+    "properties": {
+      "detection_type": "behavioral",
+      "effectiveness": 0.85,
+      "false_positive_rate": 0.05
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-NTA",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972520",
+    "last_updated": "2025-08-16T17:16:47.972521"
+  },
+  {
+    "entity_id": "a4442561-1ecd-42af-816a-5509ad4dfe7a",
+    "entity_type": "defense_technique",
+    "name": "Application Hardening",
+    "description": "Hardening applications against exploitation attempts.",
+    "properties": {
+      "prevention_type": "proactive",
+      "effectiveness": 0.9,
+      "implementation_complexity": "medium"
+    },
+    "mitre_id": null,
+    "d3fend_id": "D3-AH",
+    "confidence_score": 1.0,
+    "created_at": "2025-08-16T17:16:47.972533",
+    "last_updated": "2025-08-16T17:16:47.972534"
+  }
+]
